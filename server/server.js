@@ -1,4 +1,5 @@
 require('module-alias/register')
+const path = require('path');
 const express = require("express")
 const dotenv = require('dotenv')
 const mongoose = require('mongoose')

@@ -13,10 +13,6 @@ from langchain_community.vectorstores.faiss import FAISS
 from fastapi.middleware.cors import CORSMiddleware
 
 
-
-
-
-
 load_dotenv()
 
 # === Config ===

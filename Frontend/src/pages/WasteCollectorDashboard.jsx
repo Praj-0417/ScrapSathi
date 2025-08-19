@@ -75,9 +75,9 @@ export default function WasteCollectorDashboard() {
         const averageRating =
           ratedCollections.length > 0
             ? (
-                ratedCollections.reduce((sum, item) => sum + item.rating, 0) /
-                ratedCollections.length
-              ).toFixed(1)
+              ratedCollections.reduce((sum, item) => sum + item.rating, 0) /
+              ratedCollections.length
+            ).toFixed(1)
             : 0;
 
         setDashboardData({
@@ -285,12 +285,6 @@ export default function WasteCollectorDashboard() {
       </div>
     </div>
   );
+}
 
-export default CollectorDashboard;
-
-
-
-
-
-
-
+// export default CollectorDashboard;

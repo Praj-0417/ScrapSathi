@@ -193,7 +193,7 @@ const Navbar = ({ to, label, onClick }) => {
                     <>
                       <NavLink to="/profile" label="Profile" onClick={() => setSideDrawerOpen(false)} />
                       <NavLink to="/individual-dashboard" label="Dashboard" onClick={() => setSideDrawerOpen(false)} />
-                      <NavLink to="/sellWaste" label="Waste Collector Request" onClick={() => setSideDrawerOpen(false)} />
+                      <NavLink to="/sellWaste" label="Schedule Pickup" onClick={() => setSideDrawerOpen(false)} />
                     </>
                   ) : user.userType === 'waste-collector' ? (
                     <>
@@ -206,7 +206,7 @@ const Navbar = ({ to, label, onClick }) => {
                     <>
                       <NavLink to="/profile" label="Profile" onClick={() => setSideDrawerOpen(false)} />
                       <NavLink to="/organization-dashboard" label="Dashboard" onClick={() => setSideDrawerOpen(false)} />
-                      <NavLink to="/wasteRequest" label="Waste Collector Request" onClick={() => setSideDrawerOpen(false)} />
+                      <NavLink to="/wasteRequest" label="Schedule Pickup" onClick={() => setSideDrawerOpen(false)} />
                       {/* <NavLink to="/organizationRegistration" label="Register your organization" onClick={() => setSideDrawerOpen(false)} /> */}
                     </>
                   ) : user.userType === 'recycle-company' ?(

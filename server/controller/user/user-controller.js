@@ -40,7 +40,7 @@ const register = async (req, res) => {
     } catch (error) {
       return res.status(500).json({
         success: false,
-        message: `Hashing password error for ${password}: ` + error.message,
+        message: `Hashing password error ` + error.message,
       });
     }
 

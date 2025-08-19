@@ -67,9 +67,14 @@ export default function FloatingChatWidget() {
 
     const prevQueries = [...userQueries, input].slice(-2);
 
-    const backendURL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+    const backendURL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8001";
+    console.log("[ChatWidget] Sending to:", backendURL, "with", {
+      query: input,
+      prev_queries: prevQueries
+    });
 
     try {
+      console.log("[ChatWidget] Fetching:", `${backendURL}/chat`);
       const res = await fetch(`${backendURL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,12 +83,18 @@ export default function FloatingChatWidget() {
           prev_queries: prevQueries
         })
       });
+      console.log("[ChatWidget] Fetch response status:", res.status);
+      if (!res.ok) {
+        throw new Error("Fetch failed with status: " + res.status);
+      }
       const data = await res.json();
+      console.log("[ChatWidget] Response data:", data);
       setMessages(msgs => [
         ...msgs,
         { sender: "bot", text: data.answer }
       ]);
     } catch (err) {
+      console.error("[ChatWidget] Fetch error:", err);
       setMessages(msgs => [
         ...msgs,
         { sender: "bot", text: "Sorry, there was an error. Please try again." }
