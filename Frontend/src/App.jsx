@@ -23,7 +23,10 @@ import BigOrganizationDashboard from "./pages/big-organization";
 import RecycleCompanyDashboard from "./pages/recycle-company";
 import ForgotPassword from "./pages/Forget";
 import UpdatePassword from "./pages/updatePassword";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import FloatingChatWidget from "./pages/FloatingChatWidget";
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
  
@@ -32,6 +35,17 @@ function App() {
     <BrowserRouter>
       <LoginProvider>
           <Navbar />
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
           <FloatingChatWidget/>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -40,19 +54,21 @@ function App() {
           <Route path="/services" element={<Service />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/individual-dashboard" element={<UserDashboard />} />
-          <Route path="/sellWaste" element={<SellWaste />} />
-          <Route path="/donate" element={<SupportUs />} />
-          <Route path="/learning" element={<LearningCentre />} />
           <Route path="/forgotPassword" element={<ForgotPassword />} />
           <Route path="/updatePassword" element={<UpdatePassword />} />
-          <Route path="/waste-collector-requests" element={<WasteCollectorRequests />} />
-          <Route path="/waste-collector-dashboard" element={<WasteCollectorDashboard />} />
-          <Route path="/profile" element={<ProfileView />} />
-          <Route path="/editProfile" element={<EditProfile />} />
-          <Route path="/AdvancedDashboard" element={<AdvancedDashboard/>} />
-          <Route path="/organization-dashboard" element={<BigOrganizationDashboard/>} />
-          <Route path="/recycle-company-dashboard" element={<RecycleCompanyDashboard/>} />
+          <Route path="/learning" element={<LearningCentre />} />
+
+          {/* Protected Routes */}
+          <Route path="/individual-dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+          <Route path="/sellWaste" element={<ProtectedRoute><SellWaste /></ProtectedRoute>} />
+          <Route path="/donate" element={<ProtectedRoute><SupportUs /></ProtectedRoute>} />
+          <Route path="/waste-collector-requests" element={<ProtectedRoute><WasteCollectorRequests /></ProtectedRoute>} />
+          <Route path="/waste-collector-dashboard" element={<ProtectedRoute><WasteCollectorDashboard /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><ProfileView /></ProtectedRoute>} />
+          <Route path="/editProfile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+          <Route path="/AdvancedDashboard" element={<ProtectedRoute><AdvancedDashboard /></ProtectedRoute>} />
+          <Route path="/organization-dashboard" element={<ProtectedRoute><BigOrganizationDashboard /></ProtectedRoute>} />
+          <Route path="/recycle-company-dashboard" element={<ProtectedRoute><RecycleCompanyDashboard /></ProtectedRoute>} />
 
           <Route path="*" element={<Error />} />
         </Routes>
