@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 const https = createServer(app);
 
-const apiRoute = require('@/routes')
+const apiRoute = require('./routes')
 
 const PORT = process.env.PORT ?? 8000
 

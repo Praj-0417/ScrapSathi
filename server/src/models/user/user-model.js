@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const jwt = require("jsonwebtoken")
+const { USER_TYPES } = require('../../constants/enums');
 
 const UserSchema = new mongoose.Schema(
     {
@@ -7,21 +7,22 @@ const UserSchema = new mongoose.Schema(
         email: { type: String, required: true, unique: true },
         phone: { type: String, required: true },
         password: { type: String, required: true },
-        otp: { type: String }, // Stores OTP for verification
         otpVerified: { type: Boolean, default: false },
         termsAccepted: { type: Boolean, required: true },
         userType: {
             type: String,
-            default: "individual",
-            enum: ["individual", "waste-collector", "big-organization", "recycle-company"],
+            enum: Object.values(USER_TYPES),
             required: true,
         },
-        address: { type: String },
-        profilePhoto:{ type: String},
-        companyName: { type: String },
-        businessLicenseNo: { type: String },
-        wasteType: { type: String }, // Only for "big-organization"
-        recyclingCapabilities: { type: String }, // Only for "recycle-company"
+        profile: {
+            type: mongoose.Schema.Types.ObjectId,
+            refPath: 'profileModel',
+        },
+        profileModel: {
+            type: String,
+            required: true,
+            enum: ['IndividualProfile', 'WasteCollectorProfile', 'BigOrganizationProfile', 'RecycleCompanyProfile'],
+        },
     },
     { timestamps: true }
 );
