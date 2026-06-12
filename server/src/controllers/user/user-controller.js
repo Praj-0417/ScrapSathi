@@ -10,17 +10,16 @@ const home = async (req, res) => {
     }
 };
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
     try {
         const newUser = await AuthService.registerUser(req.body);
         res.status(201).json({ message: "Registration successful", userId: newUser._id });
     } catch (error) {
-        console.error(error.message);
-        res.status(400).json({ message: error.message });
+        next(error);
     }
 };
 
-const login = async (req, res) => {
+const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
         const { user, token } = await AuthService.loginUser(email, password);
@@ -34,19 +33,17 @@ const login = async (req, res) => {
 
         res.status(200).json({ token, user });
     } catch (error) {
-        console.error("Error during login:", error);
-        res.status(401).json({ message: error.message });
+        next(error);
     }
 };
 
-const updatePassword = async (req, res) => {
+const updatePassword = async (req, res, next) => {
     try {
         const { email, otp, password } = req.body;
         await AuthService.updatePassword(email, otp, password);
         res.status(200).json({ message: 'Password updated successfully' });
     } catch (error) {
-        console.error('Error updating password:', error);
-        res.status(400).json({ message: error.message });
+        next(error);
     }
 };
 

@@ -70,6 +70,10 @@ app.use((req, _, next) => {
 
 app.use('/api', apiRoute)
 
+// Centralized Error Handler
+const errorHandler = require('./middlewares/error.middleware');
+app.use(errorHandler);
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../Frontend/dist', 'index.html'))
 })

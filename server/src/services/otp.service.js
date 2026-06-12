@@ -2,12 +2,14 @@ const OTPRepository = require('../repositories/otp.repository');
 const mailer = require('../utils/mail');
 const otpGenerator = require('otp-generator');
 const UserRepository = require('../repositories/user.repository');
+const { ApiError } = require('../utils/ApiError');
+const ERROR_CODES = require('../constants/error-codes');
 
 class OtpService {
     async sendRegistrationOtp(email) {
         const user = await UserRepository.findUserByEmail(email);
         if (user) {
-            throw new Error('User already exists, please login');
+            throw new ApiError(ERROR_CODES.USER_ALREADY_EXISTS);
         }
         return this.generateAndSendOtp(email);
     }
@@ -15,7 +17,7 @@ class OtpService {
     async sendPasswordResetOtp(email) {
         const user = await UserRepository.findUserByEmail(email);
         if (!user) {
-            throw new Error('User not found');
+            throw new ApiError(ERROR_CODES.USER_NOT_FOUND);
         }
         return this.generateAndSendOtp(email);
     }
@@ -28,7 +30,11 @@ class OtpService {
         });
 
         await OTPRepository.createOtp(email, otp);
-        await mailer.mailOtp(otp, email);
+        try {
+            await mailer.mailOtp(otp, email);
+        } catch (error) {
+            throw new ApiError(ERROR_CODES.OTP_SEND_FAILED);
+        }
     }
 
     async verifyOtp(email, otp) {

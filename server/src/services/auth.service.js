@@ -3,18 +3,20 @@ const jwt = require('jsonwebtoken');
 const UserRepository = require('../repositories/user.repository');
 const { USER_TYPES } = require('../constants/enums');
 const OtpService = require('./otp.service');
+const { ApiError } = require('../utils/ApiError');
+const ERROR_CODES = require('../constants/error-codes');
 
 class AuthService {
     async registerUser(userData) {
         const { name, email, phone, password, termsAccepted, userType, ...profileData } = userData;
 
         if (!termsAccepted) {
-            throw new Error('You must accept the Terms and Conditions to register.');
+            throw new ApiError(ERROR_CODES.TERMS_NOT_ACCEPTED);
         }
 
         const existingUser = await UserRepository.findUserByEmail(email);
         if (existingUser) {
-            throw new Error('User already exists');
+            throw new ApiError(ERROR_CODES.USER_ALREADY_EXISTS);
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -37,12 +39,12 @@ class AuthService {
     async loginUser(email, password) {
         const user = await UserRepository.findUserByEmail(email);
         if (!user) {
-            throw new Error('Invalid email or password');
+            throw new ApiError(ERROR_CODES.INVALID_CREDENTIALS);
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password);
         if (!passwordMatch) {
-            throw new Error('Invalid email or password');
+            throw new ApiError(ERROR_CODES.INVALID_CREDENTIALS);
         }
 
         const token = jwt.sign(
@@ -65,13 +67,13 @@ class AuthService {
     async updatePassword(email, otp, newPassword) {
         const isValidOtp = await OtpService.verifyOtp(email, otp);
         if (!isValidOtp) {
-            throw new Error('Invalid OTP');
+            throw new ApiError(ERROR_CODES.INVALID_OTP);
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         const user = await UserRepository.findUserByEmail(email);
         if (!user) {
-            throw new Error('User not found');
+            throw new ApiError(ERROR_CODES.USER_NOT_FOUND);
         }
 
         await UserRepository.updateUser(user._id, { password: hashedPassword });

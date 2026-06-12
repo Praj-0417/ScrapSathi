@@ -1,6 +1,6 @@
 const OtpService = require('../../services/otp.service');
 
-const userOTP = async (req, res) => {
+const userOTP = async (req, res, next) => {
     try {
         const { email } = req.body;
         await OtpService.sendRegistrationOtp(email);
@@ -9,15 +9,11 @@ const userOTP = async (req, res) => {
             message: "OTP sent successfully"
         });
     } catch (error) {
-        console.error("Error sending OTP:", error);
-        res.status(400).json({
-            success: false,
-            message: error.message,
-        });
+        next(error);
     }
 };
 
-const sendOTP = async (req, res) => {
+const sendOTP = async (req, res, next) => {
     try {
         const { email } = req.body;
         await OtpService.sendPasswordResetOtp(email);
@@ -26,15 +22,11 @@ const sendOTP = async (req, res) => {
             message: 'OTP sent successfully'
         });
     } catch (error) {
-        console.error('Error sending OTP:', error);
-        res.status(400).json({
-            success: false,
-            message: error.message,
-        });
+        next(error);
     }
 };
 
-const verifyOTP = async (req, res) => {
+const verifyOTP = async (req, res, next) => {
     try {
         const { email, otp } = req.body;
         const isValid = await OtpService.verifyOtp(email, otp);
@@ -44,11 +36,7 @@ const verifyOTP = async (req, res) => {
             res.status(400).json({ success: false, message: 'Invalid OTP' });
         }
     } catch (error) {
-        console.error('Error verifying OTP:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to verify OTP. Please try again later.',
-        });
+        next(error);
     }
 };
 
