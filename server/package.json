@@ -1,34 +1,37 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed:admin": "node scripts/createAdmin.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/amankum2004/ScrapSathi.git"
+    "url": "git+https://github.com/Praj-0417/ScrapSathi.git"
   },
-  "author": "Aman Kumar",
+  "author": "Pranav Raj, Aman Kumar",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/amankum2004/ScrapSathi/issues"
+    "url": "https://github.com/Praj-0417/ScrapSathi/issues"
   },
-  "homepage": "https://github.com/amankum2004/ScrapSathi#readme",
+  "homepage": "https://github.com/Praj-0417/ScrapSathi#readme",
   "description": "",
   "dependencies": {
     "async": "^3.2.6",
     "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "body-parser": "^1.20.3",
+    "cloudinary": "^2.11.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "ejs": "^3.1.10",
     "env": "^0.0.2",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0",
     "jsonwebtoken": "^9.0.2",
     "module-alias": "^2.2.3",
     "mongodb": "^6.13.0",

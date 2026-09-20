@@ -15,12 +15,24 @@ export const LoginProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await api.get('/user/profile');
-      setUser(response.data.user);
+      const response = await api.get('/v1/users/me');
+      const userData = response.data?.data?.user || response.data?.user || response.data;
+      setUser(userData);
       setLoggedIn(true);
     } catch (error) {
-      // The error is already logged by the axios interceptor
-      logout();
+      // If token expired or invalid, decode from token as fallback
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const decoded = JSON.parse(atob(token.split('.')[1]));
+          setUser(decoded);
+          setLoggedIn(true);
+        } catch {
+          logout();
+        }
+      } else {
+        logout();
+      }
     }
   };
 
@@ -28,8 +40,14 @@ export const LoginProvider = ({ children }) => {
     const checkUserStatus = async () => {
       const token = localStorage.getItem('token');
       if (token) {
-        // The token is automatically added to the request by the interceptor
-        await fetchUserProfile();
+        try {
+          const decoded = JSON.parse(atob(token.split('.')[1]));
+          setUser(decoded);
+          setLoggedIn(true);
+          await fetchUserProfile();
+        } catch {
+          localStorage.removeItem('token');
+        }
       }
       setLoading(false);
     };
@@ -37,9 +55,21 @@ export const LoginProvider = ({ children }) => {
     checkUserStatus();
   }, []);
 
-  const login = async (token) => {
+  const login = async (token, userData = null) => {
     localStorage.setItem('token', token);
-    await fetchUserProfile();
+    if (userData) {
+      setUser(userData);
+      setLoggedIn(true);
+    } else {
+      try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        setUser(decoded);
+        setLoggedIn(true);
+      } catch {
+        // Ignored
+      }
+      await fetchUserProfile();
+    }
   };
 
   const logout = () => {
@@ -51,44 +81,14 @@ export const LoginProvider = ({ children }) => {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
+      <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
         <Loading />
       </div>
     );
   }
 
   return (
-    <LoginContext.Provider value={{ loggedIn, user, login, logout, loading }}>
-      {children}
-    </LoginContext.Provider>
-  );
-};
-
-  const login = (token) => {
-    localStorage.setItem("token", token);
-    const decodedToken = JSON.parse(atob(token.split(".")[1])); // Decode JWT
-    setUser(decodedToken);
-    setLoggedIn(true);
-    navigate("/");
-  };
-
-  const logout = () => {
-    localStorage.removeItem("token");
-    setLoggedIn(false);
-    setUser(null);
-    navigate("/login");
-  };
-
-  if (loggedIn && !user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loading />
-      </div>
-    );
-  }
-
-  return (
-    <LoginContext.Provider value={{ loggedIn, login, logout, user }}>
+    <LoginContext.Provider value={{ loggedIn, user, login, logout, loading, setUser }}>
       {children}
     </LoginContext.Provider>
   );

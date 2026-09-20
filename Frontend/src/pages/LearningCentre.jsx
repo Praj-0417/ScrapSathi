@@ -1,297 +1,281 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import {
-  Leaf,
-  Recycle,
-  BookOpen,
-  Smartphone,
-  Clock,
-  DollarSign,
-  BarChart3,
-} from "lucide-react";
+  BookOpenIcon,
+  DevicePhoneMobileIcon,
+  SparklesIcon,
+  ScaleIcon,
+  GlobeAmericasIcon,
+  ArrowRightIcon,
+  CheckBadgeIcon,
+  ArrowPathIcon,
+  LightBulbIcon,
+  ShieldCheckIcon,
+} from "@heroicons/react/24/outline";
 
-export default function LearningCenter() {
-  const [activeTab, setActiveTab] = useState("learn");
+export default function LearningCentre() {
+  const [activeTab, setActiveTab] = useState("segregation");
 
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
-  };
+  const tabs = [
+    { id: "segregation", label: "Scrap Segregation 101", icon: BookOpenIcon },
+    { id: "app-guide", label: "App & Live Tracking Guide", icon: DevicePhoneMobileIcon },
+    { id: "pricing", label: "Transparent Weighing", icon: ScaleIcon },
+    { id: "carbon-impact", label: "Ecological Impact", icon: GlobeAmericasIcon },
+  ];
 
   return (
-    <div className="mt-20 min-h-screen bg-gradient-to-br from-emerald-500 via-teal-500 to-blue-500 flex flex-col items-center justify-start p-20 space-y-6">
-      <div className="w-full max-w-3xl bg-white/95 rounded-lg shadow-xl backdrop-blur p-6">
-        <div className="flex items-center justify-center space-x-4 mb-8">
-          <Recycle className="w-8 h-8 text-emerald-500" />
-          <h2 className="text-3xl font-bold text-gray-800">
-            ScrapSaathi Learning Hub
-          </h2>
+    <div
+      className="min-h-screen text-slate-100 pt-28 pb-24 selection:bg-emerald-500 selection:text-white relative overflow-hidden"
+      style={{
+        background: "linear-gradient(145deg, #020d18 0%, #051a14 30%, #0a1628 60%, #071a1a 100%)",
+      }}
+    >
+      {/* Glow Orbs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="animate-float-slow absolute top-10 left-1/4 w-[600px] h-[600px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(ellipse, rgba(16,185,129,0.35) 0%, transparent 70%)" }}
+        />
+        <div
+          className="animate-float absolute bottom-10 right-10 w-96 h-96 rounded-full opacity-15"
+          style={{ background: "radial-gradient(ellipse, rgba(6,182,212,0.3) 0%, transparent 70%)" }}
+        />
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10 space-y-12">
+        
+        {/* Header Hero */}
+        <div className="text-center max-w-2xl mx-auto space-y-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold backdrop-blur-md">
+            <LightBulbIcon className="w-4 h-4 text-emerald-400 animate-pulse" />
+            <span>Circular Economy Knowledge Base</span>
+          </div>
+          <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+            ScrapSaathi{" "}
+            <span
+              style={{
+                background: "linear-gradient(135deg, #34d399, #10b981, #06b6d4)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              Learning Hub
+            </span>
+          </h1>
+          <p className="text-sm sm:text-base text-slate-400">
+            Learn how to segregate recyclable scrap, maximize your doorstep payout, and protect the planet with zero-landfill practices.
+          </p>
         </div>
 
-        {/* Custom Tabs */}
-        <div className="w-full">
-          <div className="grid grid-cols-4 gap-4 bg-gray-100 p-2 rounded-lg">
-            {[
-              { id: "learn", icon: BookOpen, label: "Learn" },
-              { id: "app-guide", icon: Smartphone, label: "App Guide" },
-              { id: "tips", icon: Leaf, label: "Tips" },
-              { id: "impact", icon: Recycle, label: "Impact" },
-            ].map((tab) => (
+        {/* Tab Buttons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = activeTab === tab.id;
+            return (
               <button
                 key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                className={`flex items-center justify-center space-x-2 p-2 rounded-md transition-colors
-                  ${
-                    activeTab === tab.id
-                      ? "bg-white shadow-sm text-emerald-600"
-                      : "hover:bg-white/50 text-gray-600"
-                  }`}
+                onClick={() => setActiveTab(tab.id)}
+                className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between space-y-2 ${
+                  isSelected
+                    ? "bg-emerald-950/60 border-emerald-500 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10"
+                    : "bg-slate-900/80 border-slate-800 hover:border-slate-700"
+                }`}
               >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.label}</span>
+                <Icon className={`w-5 h-5 ${isSelected ? "text-emerald-400" : "text-slate-400"}`} />
+                <span className={`text-xs font-black ${isSelected ? "text-white" : "text-slate-300"}`}>
+                  {tab.label}
+                </span>
               </button>
-            ))}
-          </div>
+            );
+          })}
+        </div>
 
-          {/* Tab Content */}
-          <div className="mt-6">
-            {/* Learn Tab */}
-            {activeTab === "learn" && (
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-6">
-                {/* Learn content */}
-                <h3 className="text-2xl font-semibold mb-4 text-gray-800">
-                  Understanding Waste Management
-                </h3>
-                <div className="grid md:grid-cols-2 gap-6">
+        {/* Tab Content Cards */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-10 backdrop-blur-xl shadow-2xl space-y-8 animate-fade-in">
+          {activeTab === "segregation" && (
+            <div className="space-y-6">
+              <div className="space-y-2 border-b border-slate-800 pb-4">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-400">Module 01</span>
+                <h3 className="text-2xl font-black text-white">How to Segregate Household Scrap for Top Payout</h3>
+                <p className="text-xs text-slate-400">
+                  Separating different grades of metal, paper, and plastic directly increases your doorstep payout value.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                  <h4 className="font-bold text-emerald-400 text-sm">📰 Paper & Cardboard</h4>
+                  <ul className="space-y-2 text-xs text-slate-300">
+                    <li>• Keep newspapers tied separately from cardboard cartons for the highest paper grade rate.</li>
+                    <li>• Ensure paper scrap is kept dry (wet paper loses fiber value and attracts moisture discount).</li>
+                    <li>• Hardcover books, shredded office paper, and magazines have distinct recyclability grades.</li>
+                  </ul>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                  <h4 className="font-bold text-teal-400 text-sm">🔩 Metal Segregation</h4>
+                  <ul className="space-y-2 text-xs text-slate-300">
+                    <li>• Test with a magnet: Copper, Brass, and Aluminium are non-magnetic and command higher rates (₹200-₹700/kg).</li>
+                    <li>• Keep heavy iron, grills, and structural steel in a separate pile for fast bulk weighing.</li>
+                    <li>• Empty all paint or chemical cans before handing over to the collector.</li>
+                  </ul>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                  <h4 className="font-bold text-cyan-400 text-sm">💻 E-Waste & Appliances</h4>
+                  <ul className="space-y-2 text-xs text-slate-300">
+                    <li>• Do not dismantle circuit boards or compressors yourself to prevent hazardous leakage.</li>
+                    <li>• Laptops, CPUs, and AC units are valued as complete units with instant electronic payout.</li>
+                    <li>• 100% of e-waste is processed in government-authorized R2/e-Stewards compliant plants.</li>
+                  </ul>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+                  <h4 className="font-bold text-emerald-400 text-sm">🧴 Plastics & Bottles</h4>
+                  <ul className="space-y-2 text-xs text-slate-300">
+                    <li>• Separate clear PET water bottles from rigid HDPE oil / detergent containers.</li>
+                    <li>• Crush empty plastic bottles to minimize volume and make transportation eco-friendly.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "app-guide" && (
+            <div className="space-y-6">
+              <div className="space-y-2 border-b border-slate-800 pb-4">
+                <span className="text-xs font-black uppercase tracking-wider text-teal-400">Module 02</span>
+                <h3 className="text-2xl font-black text-white">Using ScrapSaathi Live Map & Payouts</h3>
+                <p className="text-xs text-slate-400">
+                  Step-by-step walkthrough of booking, live GPS tracking, and digital scale settlement.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black shrink-0 text-xs">
+                    1
+                  </div>
                   <div>
-                    <p className="text-gray-700 leading-relaxed">
-                      Waste management is the backbone of environmental
-                      sustainability. Through proper collection, processing, and
-                      disposal of waste, we can significantly reduce our
-                      environmental impact and create a cleaner future for
-                      generations to come.
+                    <h4 className="font-bold text-white text-sm">Pin Your Doorstep on Interactive Map</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Use the "Locate Me" button or drag the eco-marker pin to your exact building or society gate.
                     </p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {["Recycling", "Composting", "Reduction", "Reuse"].map(
-                        (tag) => (
-                          <span
-                            key={tag}
-                            className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm"
-                          >
-                            {tag}
-                          </span>
-                        )
-                      )}
-                    </div>
                   </div>
-                  <div className="bg-white rounded-lg p-4 shadow-md">
-                    <h4 className="font-semibold mb-2">Quick Facts</h4>
-                    <ul className="space-y-2">
-                      <li className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                        <span className="text-sm">
-                          Recycling saves energy and resources
-                        </span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                        <span className="text-sm">
-                          Composting reduces methane emissions
-                        </span>
-                      </li>
-                      <li className="flex items-center space-x-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-                        <span className="text-sm">
-                          Proper sorting increases recycling efficiency
-                        </span>
-                      </li>
-                    </ul>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-black shrink-0 text-xs">
+                    2
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Choose Your Doorstep Payout Mode</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Select Instant UPI (GPay/PhonePe), Cash at Doorstep, Direct Bank IMPS, or Green Wallet (+5% bonus).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-black shrink-0 text-xs">
+                    3
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-white text-sm">Track Collector Live on Route</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Watch the collector drive towards your doorstep on the live map in real time with estimated arrival minutes.
+                    </p>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* App Guide Tab */}
-            {activeTab === "app-guide" && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
-                <h3 className="text-2xl font-semibold mb-6 text-gray-800">
-                  Getting Started with ScrapSaathi
-                </h3>
+          {activeTab === "pricing" && (
+            <div className="space-y-6">
+              <div className="space-y-2 border-b border-slate-800 pb-4">
+                <span className="text-xs font-black uppercase tracking-wider text-cyan-400">Module 03</span>
+                <h3 className="text-2xl font-black text-white">How ScrapSaathi Prevents Scale Manipulation</h3>
+                <p className="text-xs text-slate-400">
+                  Certified digital weighment technology to ensure you receive 100% of your scrap value.
+                </p>
+              </div>
 
-                <div className="grid gap-6">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {[
-                      {
-                        icon: Clock,
-                        title: "Schedule Pickups",
-                        description:
-                          "Set convenient pickup times for your recyclables. Get notifications and track your pickup status in real-time.",
-                        color: "blue",
-                      },
-                      {
-                        icon: DollarSign,
-                        title: "Earn from Waste",
-                        description:
-                          "Convert your recyclable waste into money. Get competitive rates for paper, plastic, metal, and e-waste.",
-                        color: "green",
-                      },
-                      {
-                        icon: BarChart3,
-                        title: "Track Impact",
-                        description:
-                          "Monitor your environmental contribution through detailed analytics and impact reports.",
-                        color: "purple",
-                      },
-                      {
-                        icon: Leaf,
-                        title: "Learn & Improve",
-                        description:
-                          "Access educational resources and tips to improve your waste management practices.",
-                        color: "emerald",
-                      },
-                    ].map((feature) => (
-                      <div
-                        key={feature.title}
-                        className="bg-white rounded-lg p-6 shadow-md"
-                      >
-                        <div className="flex items-center space-x-3 mb-4">
-                          <feature.icon
-                            className={`w-6 h-6 text-${feature.color}-500`}
-                          />
-                          <h4 className="text-lg font-semibold">
-                            {feature.title}
-                          </h4>
-                        </div>
-                        <p className="text-gray-600 text-sm">
-                          {feature.description}
-                        </p>
-                      </div>
-                    ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-emerald-400 text-xs">
+                    <ShieldCheckIcon className="w-4 h-4" />
+                    <span>Live Zero Tare Verification</span>
                   </div>
+                  <p className="text-xs text-slate-300">
+                    The collector resets the digital electronic scale in front of you. You verify the 0.00 KG display before any item is placed on the scale.
+                  </p>
+                </div>
 
-                  <div className="bg-white rounded-lg p-6 shadow-md mt-6">
-                    <h4 className="text-xl font-semibold mb-4">
-                      How to Use ScrapSaathi
-                    </h4>
-                    <ol className="space-y-4">
-                      {[
-                        {
-                          title: "Create Your Account",
-                          description:
-                            "Sign up with your details and verify your account",
-                        },
-                        {
-                          title: "Schedule a Pickup",
-                          description:
-                            "Choose a convenient time and list your recyclables",
-                        },
-                        {
-                          title: "Prepare Your Waste",
-                          description:
-                            "Sort and clean your recyclables according to guidelines",
-                        },
-                        {
-                          title: "Get Paid",
-                          description:
-                            "Receive payment directly to your preferred payment method",
-                        },
-                      ].map((step, index) => (
-                        <li
-                          key={step.title}
-                          className="flex items-start space-x-3"
-                        >
-                          <span className="flex-shrink-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
-                            {index + 1}
-                          </span>
-                          <div>
-                            <p className="font-medium">{step.title}</p>
-                            <p className="text-sm text-gray-600">
-                              {step.description}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ol>
+                <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <div className="flex items-center gap-2 font-bold text-teal-400 text-xs">
+                    <CheckBadgeIcon className="w-4 h-4" />
+                    <span>Instant Digital Receipt</span>
                   </div>
+                  <p className="text-xs text-slate-300">
+                    As soon as weighing concludes, an itemized digital receipt with exact weight, unit rate, and total payout is generated in your dashboard.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Tips Tab */}
-            {activeTab === "tips" && (
-              <div className="bg-gradient-to-r from-teal-50 to-cyan-50 rounded-lg p-6">
-                <h3 className="text-2xl font-semibold mb-4 text-gray-800">
-                  Daily Tips & Tricks
-                </h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {[
-                    {
-                      title: "Reduce",
-                      tips: [
-                        "Use reusable bags",
-                        "Buy in bulk",
-                        "Choose minimal packaging",
-                      ],
-                    },
-                    {
-                      title: "Reuse",
-                      tips: [
-                        "Repair items",
-                        "Donate usable goods",
-                        "Use refillable containers",
-                      ],
-                    },
-                  ].map((section) => (
-                    <div
-                      key={section.title}
-                      className="bg-white rounded-lg p-4 shadow-md"
-                    >
-                      <h4 className="font-semibold mb-2">{section.title}</h4>
-                      <ul className="space-y-2">
-                        {section.tips.map((tip) => (
-                          <li key={tip} className="flex items-center space-x-2">
-                            <Leaf className="w-4 h-4 text-emerald-500" />
-                            <span className="text-sm">{tip}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
+          {activeTab === "carbon-impact" && (
+            <div className="space-y-6">
+              <div className="space-y-2 border-b border-slate-800 pb-4">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-400">Module 04</span>
+                <h3 className="text-2xl font-black text-white">Understanding Your Carbon & Deforestation Offset</h3>
+                <p className="text-xs text-slate-400">
+                  How recycling small everyday scrap prevents thousands of tons of greenhouse gases.
+                </p>
               </div>
-            )}
 
-            {/* Impact Tab */}
-            {activeTab === "impact" && (
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-6">
-                <h3 className="text-2xl font-semibold mb-4 text-gray-800">
-                  Environmental Impact
-                </h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  {[
-                    {
-                      label: "Waste Recycled",
-                      value: "245 kg",
-                      color: "emerald",
-                    },
-                    { label: "Trees Saved", value: "12", color: "green" },
-                    { label: "CO₂ Reduced", value: "180 kg", color: "teal" },
-                  ].map((stat) => (
-                    <div
-                      key={stat.label}
-                      className={`bg-${stat.color}-50 rounded-lg p-4 text-center shadow-md`}
-                    >
-                      <span className="block text-2xl font-bold text-gray-800">
-                        {stat.value}
-                      </span>
-                      <span className="text-sm text-gray-600">
-                        {stat.label}
-                      </span>
-                    </div>
-                  ))}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <p className="text-3xl font-black text-emerald-400">17 Trees</p>
+                  <p className="text-xs font-bold text-white uppercase">Per 1 Ton Paper</p>
+                  <p className="text-[11px] text-slate-400">Recycling 1 ton of paper saves 17 mature trees and 26,000 liters of water.</p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <p className="text-3xl font-black text-teal-400">95% Energy</p>
+                  <p className="text-xs font-bold text-white uppercase">Aluminium Recycling</p>
+                  <p className="text-[11px] text-slate-400">Recycled aluminium uses 95% less energy than raw bauxite mining.</p>
+                </div>
+
+                <div className="p-6 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                  <p className="text-3xl font-black text-cyan-400">1.8 KG CO₂</p>
+                  <p className="text-xs font-bold text-white uppercase">Per KG Diverted</p>
+                  <p className="text-[11px] text-slate-400">Every single kilogram diverted from landfills saves ~1.8 kg of atmospheric CO₂.</p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
+        </div>
+
+        {/* CTA */}
+        <div className="p-8 rounded-3xl bg-gradient-to-r from-emerald-950/50 via-slate-900 to-teal-950/50 border border-emerald-500/20 text-center space-y-4">
+          <h3 className="text-xl sm:text-2xl font-black text-white">Ready to Put Knowledge into Action?</h3>
+          <p className="text-xs text-slate-400 max-w-md mx-auto">
+            Book your free doorstep pickup now and earn top rates for your sorted recyclables.
+          </p>
+          <div>
+            <Link
+              to="/sellWaste"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black text-xs shadow-xl shadow-emerald-500/20 transition-all cursor-pointer"
+            >
+              <span>Schedule Free Pickup</span>
+              <ArrowRightIcon className="w-4 h-4" />
+            </Link>
           </div>
         </div>
+
       </div>
     </div>
   );

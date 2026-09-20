@@ -283,9 +283,9 @@ To showcase Scrap Saathi’s mission, vision, and founding team.
 - Our Mission: Reduce landfill waste, promote recycling, and enable a cleaner planet.
 - Our Values: Sustainability, Innovation, Transparency, and Community.
   -🧑 Founders:
-- Aman Kumar – Co-Founder
 - Pranav Raj – Founder & CEO
-- 📧 Contact: raj989135@gmail.com
+- Aman Kumar – Co-Founder
+- 📧 Contact: pranavraj0105@gmail.com / sbthelp123@gmail.com
 
 ---
 

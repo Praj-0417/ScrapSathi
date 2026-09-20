@@ -36,6 +36,6 @@
       "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
       "start": "cd frontend && npm run build && cd ../backend && npm run start"
   },
-  "author": "\"Aman Pranav\"",
+  "author": "Pranav Raj, Aman Kumar",
   "license": "ISC"
 }

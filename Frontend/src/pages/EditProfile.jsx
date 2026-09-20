@@ -1,313 +1,272 @@
-import { useState, useEffect } from "react";
-import { FiEdit2 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
-import {
-  ArrowPathIcon,
-  TrashIcon,
-  ArchiveBoxIcon,
-  HandThumbUpIcon,
-} from "@heroicons/react/24/outline";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useLogin } from "../components/LoginContext";
 import { api } from "../utils/api";
-import Swal from "sweetalert2";
+import { toast } from "react-toastify";
+import {
+  UserIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  MapPinIcon,
+  BuildingOffice2Icon,
+  ArrowRightIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  ExclamationCircleIcon,
+} from "@heroicons/react/24/outline";
 
 export default function EditProfile() {
   const navigate = useNavigate();
-  const [userData, setUserData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    userType: "individual",
-    address: "",
-    profilePhoto: "/images/dp_logo.jpg",
-    companyName: "",
-    businessLicenseNo: "",
-    wasteType: "",
-    recyclingCapabilities: "",
+  const { user, setUser } = useLogin();
+
+  const [formData, setFormData] = useState({
+    name: user?.name || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    companyName: user?.companyName || "",
+    businessLicenseNo: user?.businessLicenseNo || "",
   });
-  const [otp, setOtp] = useState("");
-  const [isOtpSent, setIsOtpSent] = useState(false);
-  const [isOtpVerified, setIsOtpVerified] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Fetch user data from the backend
     const fetchUserData = async () => {
       try {
-        const response = await api.get('/auth/profile', {
-          withCredentials: true, // Send cookies if using authentication
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // Ensure token is stored in localStorage
-          },
-        });
-        setUserData(response.data);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
+        const response = await api.get("/v1/users/me");
+        const data = response.data?.data?.user || response.data?.user || response.data;
+        if (data) {
+          setFormData({
+            name: data.name || "",
+            phone: data.phone || "",
+            address: data.address || "",
+            companyName: data.companyName || "",
+            businessLicenseNo: data.businessLicenseNo || "",
+          });
+        }
+      } catch (err) {
+        console.error("Fetch profile error:", err);
       }
     };
     fetchUserData();
   }, []);
 
+  const validate = () => {
+    const errs = {};
+    if (!formData.name.trim() || formData.name.trim().length < 2) {
+      errs.name = "Full name must be at least 2 characters";
+    }
+    if (formData.phone.trim() && !/^[6-9]\d{9}$/.test(formData.phone.trim())) {
+      errs.phone = "Enter a valid 10-digit Indian mobile number";
+    }
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleChange = (e) => {
-    if (e.target.name === "email") {
-      setIsOtpVerified(false);
-    }
-    setUserData({ ...userData, [e.target.name]: e.target.value });
-  };
-
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setUserData({ ...userData, profilePhoto: reader.result });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const sendOtp = async () => {
-    try {
-      await api.post("/otp/send-otp", { email: userData.email });
-      setIsOtpSent(true);
-    } catch (error) {
-      console.error("Error sending OTP:", error);
-    }
-  };
-
-  const verifyOtp = async () => {
-    try {
-      const response = await api.post("/otp/verify-otp", { email: userData.email, otp: otp });
-      if (response.data.success) {
-        setIsOtpVerified(true);
-      }
-    } catch (error) {
-      console.error("OTP verification failed:", error);
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isOtpVerified) return;
-    setSaving(true);
-    try {
-      // await api.patch("/auth/update-profile", userData);
-      const response = await api.patch("/auth/update-profile", {email: userData.email,...userData});
-      if (response) {
-       Swal.fire({title: "Success",text: "Updated Successfully",icon: "success",});
-        navigate('/profile')
+    if (!validate()) {
+      toast.error("Please resolve the highlighted errors.");
+      return;
     }
-    } catch (error) {
-      console.error("Error updating profile:", error);
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        phone: formData.phone.trim() || undefined,
+        address: formData.address.trim() || undefined,
+        companyName: formData.companyName.trim() || undefined,
+        businessLicenseNo: formData.businessLicenseNo.trim() || undefined,
+      };
+
+      const res = await api.patch("/v1/users/me", payload);
+      const updatedUser = res.data?.data?.user || res.data?.user || { ...user, ...payload };
+      if (setUser) {
+        setUser(updatedUser);
+      }
+
+      toast.success("Profile updated successfully!");
+      navigate("/profile");
+    } catch (err) {
+      console.error("Profile update error:", err);
+      const msg = err.response?.data?.message || "Failed to update profile. Please try again.";
+      toast.error(msg);
     } finally {
-      setSaving(false);
+      setIsSubmitting(false);
     }
   };
 
-
-
-  const icons = [
-    <ArrowPathIcon className="w-16 h-16 text-white opacity-40" />,
-    <TrashIcon className="w-16 h-16 text-white opacity-40" />,
-    <ArchiveBoxIcon className="w-16 h-16 text-white opacity-40" />,
-    <HandThumbUpIcon className="w-16 h-16 text-white opacity-40" />,
-  ];
-
-  // Determine whether additional fields should be shown based on user type.
-  const showBusinessFields =
-    userData.userType === "waste-collector" ||
-    userData.userType === "big-organization" ||
-    userData.userType === "recycle-companies";
-
-  // For "big-organization" and "recycle-companies", businessName and licenseNumber are required.
-  const isBusinessRequired =
-    userData.userType === "big-organization" ||
-    userData.userType === "recycle-companies";
-
   return (
-    <div className="relative bg-gradient-to-r from-green-500 to-blue-500 animate-gradientBackground flex items-center justify-center min-h-screen">
-      {/* Background Icons */}
-      <div className="absolute inset-0">
-        <div className="absolute top-24 right-8">{icons[1]}</div>
-        <div className="absolute top-20 left-20">{icons[2]}</div>
-        <div className="absolute bottom-20 right-16">{icons[0]}</div>
-        <div className="absolute bottom-10 left-24">{icons[1]}</div>
-        <div className="absolute bottom-30 right-12">{icons[2]}</div>
-        <div className="absolute top-64 right-24">{icons[2]}</div>
-        <div className="absolute top-72 left-12">{icons[3]}</div>
+    <div
+      className="min-h-screen text-slate-100 pt-28 pb-24 selection:bg-emerald-500 selection:text-white relative overflow-hidden"
+      style={{
+        background: "linear-gradient(145deg, #020d18 0%, #051a14 30%, #0a1628 60%, #071a1a 100%)",
+      }}
+    >
+      {/* Glow Orbs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="animate-float-slow absolute top-10 left-1/3 w-[600px] h-[600px] rounded-full opacity-20"
+          style={{ background: "radial-gradient(ellipse, rgba(16,185,129,0.35) 0%, transparent 70%)" }}
+        />
+        <div
+          className="animate-float absolute bottom-10 right-10 w-96 h-96 rounded-full opacity-15"
+          style={{ background: "radial-gradient(ellipse, rgba(6,182,212,0.3) 0%, transparent 70%)" }}
+        />
       </div>
 
-      <div className="m-12 mt-32 max-w-2xl mx-auto p-6 bg-white shadow-lg rounded-lg border border-gray-300 relative z-10">
-        <h2 className="text-2xl font-semibold text-center mb-4 text-gray-700">
-          Edit Profile
-        </h2>
-
-        <div className="flex flex-col items-center mb-4 relative">
-          <div className="relative">
-            <img
-              src={userData.profilePhoto ||  "/images/dp_logo.jpg"}
-              alt="Profile"
-              className="w-24 h-24 rounded-full border-2 border-gray-300 shadow-md"
-            />
-            <label
-              htmlFor="profilePhoto"
-              className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full cursor-pointer hover:bg-blue-600 border-2 border-white"
-              style={{
-                transform: "translate(25%, 25%)", // Adjust position as needed
-              }}
-            >
-              <FiEdit2 size={16} />
-            </label>
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 relative z-10 space-y-8">
+        
+        {/* Header Hero */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold backdrop-blur-md">
+            <SparklesIcon className="w-4 h-4 text-emerald-400" />
+            <span>Account Preferences</span>
           </div>
-          <input
-            id="profilePhoto"
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handlePhotoChange}
-          />
+          <h1 className="text-3xl font-black text-white tracking-tight">Edit Your Profile</h1>
+          <p className="text-xs sm:text-sm text-slate-400">
+            Update your registered name, contact number, and default doorstep collection address.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* User type selection */}
-          {/* <div className="flex flex-col">
-            <label htmlFor="type" className="mb-1 font-medium text-gray-600">
-              User Type
-            </label>
-            <select
-              name="type"
-              id="type"
-              value={userData.type}
-              onChange={handleChange}
-              className="w-full p-3 border rounded bg-white shadow-sm"
-            >
-              <option value="individual">Individual</option>
-              <option value="waste-collector">Waste Collector</option>
-              <option value="big-organization">Big Organization</option>
-              <option value="recycle-companies">Recycle Companies</option>
-            </select>
-          </div> */}
-
-          <input
-            type="text"
-            name="type"
-            value={userData.userType}
-            onChange={handleChange}
-            placeholder="UserType"
-            className="w-full p-3 border rounded bg-white shadow-sm"
-          />
-          
-          <input
-            type="text"
-            name="name"
-            value={userData.name}
-            onChange={handleChange}
-            placeholder="Full Name"
-            className="w-full p-3 border rounded bg-white shadow-sm"
-          />
-
-          <div className="relative mb-4 border rounded">
-            <input
-              type="email"
-              name="email"
-              placeholder="Email"
-              value={userData.email}
-              onChange={handleChange}
-              required
-              autoComplete="off"
-              className="w-full p-3 border-none rounded pr-28"
-            />
-            <button
-              type="button"
-              onClick={sendOtp}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-green-600 hover:text-green-800 text-sm font-semibold"
-            >
-              Send OTP
-            </button>
-          </div>
-
-          {/* OTP Input Always Visible */}
-          {isOtpSent && (
-            <>
-              <div className="relative mb-4 border transition-all duration-700 ease-in-out rounded">
+        {/* Edit Form Card */}
+        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 backdrop-blur-xl shadow-2xl space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* Full Name */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Full Name <span className="text-rose-400">*</span>
+              </label>
+              <div className="relative">
                 <input
                   type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="Enter OTP"
-                  className="w-full p-3 border-none rounded pr-28"
+                  name="name"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="e.g. Priya Sharma"
+                  className={`w-full p-3.5 pl-10 bg-slate-950 border rounded-2xl text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                    errors.name ? "border-rose-500 focus:ring-rose-500" : "border-slate-700 focus:ring-emerald-500"
+                  }`}
                 />
-                <button
-                  type="button"
-                  onClick={verifyOtp}
-                  disabled={isOtpVerified}
-                  className={`absolute right-2 top-1/2 transform -translate-y-1/2 text-sm font-semibold ${isOtpVerified
-                      ? "text-gray-400 cursor-default"
-                      : "text-green-600 hover:text-green-800"
-                    }`}
-                >
-                  {isOtpVerified ? "Verified" : "Verify OTP"}
-                </button>
+                <UserIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               </div>
-            </>
-          )}
+              {errors.name && (
+                <p className="text-[11px] text-rose-400 font-semibold mt-1 flex items-center gap-1">
+                  <ExclamationCircleIcon className="w-3.5 h-3.5" />
+                  {errors.name}
+                </p>
+              )}
+            </div>
 
-          {/* {isOtpVerified && <p className="text-green-600">Email Verified ✔</p>} */}
+            {/* Mobile Phone */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Mobile Number (10 Digits)
+              </label>
+              <div className="relative">
+                <input
+                  type="tel"
+                  name="phone"
+                  maxLength={10}
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="9876543210"
+                  className={`w-full p-3.5 pl-10 bg-slate-950 border rounded-2xl text-xs font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
+                    errors.phone ? "border-rose-500 focus:ring-rose-500" : "border-slate-700 focus:ring-emerald-500"
+                  }`}
+                />
+                <PhoneIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              </div>
+              {errors.phone && (
+                <p className="text-[11px] text-rose-400 font-semibold mt-1 flex items-center gap-1">
+                  <ExclamationCircleIcon className="w-3.5 h-3.5" />
+                  {errors.phone}
+                </p>
+              )}
+            </div>
 
-          <input
-            type="text"
-            name="phone"
-            value={userData.phone}
-            onChange={handleChange}
-            placeholder="Phone Number"
-            className="w-full p-3 border rounded bg-white shadow-sm"
-          />
+            {/* Default Address */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Default Doorstep Address & Landmark
+              </label>
+              <div className="relative">
+                <textarea
+                  rows={3}
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="House/Flat No, Apartment name, Street, Landmark, City & Pincode"
+                  className="w-full p-3.5 pl-10 bg-slate-950 border border-slate-700 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <MapPinIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-4" />
+              </div>
+            </div>
 
-          {/* Render additional fields if the user type requires business details */}
-          {showBusinessFields && (
-            <>
-              <input
-                type="text"
-                name="businessName"
-                value={userData.businessName}
-                onChange={handleChange}
-                placeholder="Business Name"
-                className="w-full p-3 border rounded bg-white shadow-sm"
-                required={isBusinessRequired}
-              />
-              <input
-                type="text"
-                name="licenseNumber"
-                value={userData.licenseNumber}
-                onChange={handleChange}
-                placeholder="License Number"
-                className="w-full p-3 border rounded bg-white shadow-sm"
-                required={isBusinessRequired}
-              />
-            </>
-          )}
+            {/* Company / Business Details if applicable */}
+            {(user?.userType !== "individual" || formData.companyName) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    name="companyName"
+                    value={formData.companyName}
+                    onChange={handleChange}
+                    placeholder="Company Pvt Ltd"
+                    className="w-full p-3.5 bg-slate-950 border border-slate-700 rounded-2xl text-xs font-bold text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                    Business License / GSTIN
+                  </label>
+                  <input
+                    type="text"
+                    name="businessLicenseNo"
+                    value={formData.businessLicenseNo}
+                    onChange={handleChange}
+                    placeholder="07AAAAA0000A1Z5"
+                    className="w-full p-3.5 bg-slate-950 border border-slate-700 rounded-2xl text-xs font-mono text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+            )}
 
-          <textarea
-            name="address"
-            value={userData.address}
-            onChange={handleChange}
-            placeholder="Address"
-            className="w-full p-3 border rounded resize-none bg-white shadow-sm h-24"
-          />
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-4 border-t border-slate-800">
+              <Link
+                to="/profile"
+                className="flex-1 py-3.5 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs flex items-center justify-center transition-colors border border-slate-700"
+              >
+                Cancel
+              </Link>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+              >
+                <span>{isSubmitting ? "Saving Changes..." : "Save Profile"}</span>
+                <ArrowRightIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
+        </div>
 
-          <button
-            type="submit"
-            className="w-full bg-green-600 text-white p-3 rounded font-semibold hover:bg-green-700 shadow disabled:opacity-50"
-            disabled={saving || !isOtpVerified}
-          >
-            {saving ? "Saving..." : "Save Changes"}
-          </button>
-        </form>
       </div>
     </div>
   );
 }
-
-
-

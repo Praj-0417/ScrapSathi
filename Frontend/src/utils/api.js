@@ -1,10 +1,22 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
-const baseUrl =
-  import.meta.env.VITE_ENVIRONMENT === 'development'
-    ? import.meta.env.VITE_DEV_BASE_URL
-    : import.meta.env.VITE_PROD_BASE_URL;
+const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  if (import.meta.env.PROD) {
+    return (
+      import.meta.env.VITE_PROD_BASE_URL ||
+      import.meta.env.VITE_FALLBACK_PROD_BASE_URL ||
+      'https://sbt-1.onrender.com/api'
+    );
+  }
+  return import.meta.env.VITE_DEV_BASE_URL || 'http://localhost:8000/api';
+};
+
+const rawBase = getBaseUrl();
+const baseUrl = rawBase.replace(/\/+$/, '');
 
 export const api = axios.create({
   baseURL: baseUrl,
