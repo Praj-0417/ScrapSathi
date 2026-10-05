@@ -1,0 +1,152 @@
+name: scrapsathi-microservices
+
+services:
+  # ─── API Gateway (Ingress Reverse Proxy & Rate Limiter) ───────────────────────
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: scrapsathi-api-gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      NODE_ENV: production
+      AUTH_SERVICE_URL: http://auth-service:8010
+      PICKUP_SERVICE_URL: http://pickup-service:8020
+      RATE_SERVICE_URL: http://rate-service:8030
+      DONATION_SERVICE_URL: http://donation-service:8040
+      CHATBOT_SERVICE_URL: http://chatbot-service:8001
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      - auth-service
+      - pickup-service
+      - rate-service
+      - donation-service
+    networks:
+      - scrapsathi-net
+
+  # ─── Auth Microservice (Authentication, OTP, Token Revocation) ───────────────
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: scrapsathi-auth-service
+    restart: unless-stopped
+    ports:
+      - "8010:8010"
+    environment:
+      PORT: 8010
+      NODE_ENV: production
+      MongoDB: ${MongoDB}
+      JWT_SECRET: ${JWT_SECRET:-scrapsathi-jwt-super-secret-key-32chars}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      PRIMARY_EMAIL: ${PRIMARY_EMAIL:-}
+      PRIMARY_EMAIL_PASSWORD: ${PRIMARY_EMAIL_PASSWORD:-}
+    networks:
+      - scrapsathi-net
+
+  # ─── Pickup & Telemetry Microservice (Geospatial Dispatch, Live GPS) ──────────
+  pickup-service:
+    build:
+      context: ./services/pickup-service
+      dockerfile: Dockerfile
+    container_name: scrapsathi-pickup-service
+    restart: unless-stopped
+    ports:
+      - "8020:8020"
+    environment:
+      PORT: 8020
+      NODE_ENV: production
+      MongoDB: ${MongoDB}
+      JWT_SECRET: ${JWT_SECRET:-scrapsathi-jwt-super-secret-key-32chars}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+    networks:
+      - scrapsathi-net
+
+  # ─── Rate & Pricing Catalog Microservice ─────────────────────────────────────
+  rate-service:
+    build:
+      context: ./services/rate-service
+      dockerfile: Dockerfile
+    container_name: scrapsathi-rate-service
+    restart: unless-stopped
+    ports:
+      - "8030:8030"
+    environment:
+      PORT: 8030
+      NODE_ENV: production
+      MongoDB: ${MongoDB}
+      JWT_SECRET: ${JWT_SECRET:-scrapsathi-jwt-super-secret-key-32chars}
+    networks:
+      - scrapsathi-net
+
+  # ─── Donation & Legal Acknowledgements Microservice ──────────────────────────
+  donation-service:
+    build:
+      context: ./services/donation-service
+      dockerfile: Dockerfile
+    container_name: scrapsathi-donation-service
+    restart: unless-stopped
+    ports:
+      - "8040:8040"
+    environment:
+      PORT: 8040
+      NODE_ENV: production
+      MongoDB: ${MongoDB}
+      JWT_SECRET: ${JWT_SECRET:-scrapsathi-jwt-super-secret-key-32chars}
+    networks:
+      - scrapsathi-net
+
+  # ─── Chatbot RAG Assistant Microservice (FastAPI / FAISS / LangChain) ────────
+  chatbot-service:
+    build:
+      context: ./services/chatbot-service
+      dockerfile: Dockerfile
+    container_name: scrapsathi-chatbot-service
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      TOGETHER_API_KEY: ${TOGETHER_API_KEY:-}
+      ALLOWED_ORIGINS: http://localhost:5173,http://localhost:8000
+    networks:
+      - scrapsathi-net
+
+  # ─── Frontend (React + Vite SPA) ─────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_DEV_BASE_URL: http://localhost:8000/api
+        VITE_PROD_BASE_URL: http://localhost:8000/api
+        VITE_BACKEND_URL: http://localhost:8001
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    container_name: scrapsathi-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway
+    networks:
+      - scrapsathi-net
+
+  # ─── Redis Cache & Pub/Sub ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: scrapsathi-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - scrapsathi-net
+
+networks:
+  scrapsathi-net:
+    driver: bridge

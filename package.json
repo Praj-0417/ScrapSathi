@@ -1,41 +1,31 @@
 {
-  "name": "scrapsathi",
-  "version": "1.0.0",
-  "description": "Waste management application",
-  "main": "index.js",
-  "dependencies": {
-    "ansi-regex": "^5.0.1",
-    "ansi-styles": "^4.3.0",
-    "chalk": "^4.1.2",
-    "cliui": "^8.0.1",
-    "color-convert": "^2.0.1",
-    "color-name": "^1.1.4",
-    "concurrently": "^9.1.2",
-    "emoji-regex": "^8.0.0",
-    "escalade": "^3.2.0",
-    "get-caller-file": "^2.0.5",
-    "has-flag": "^4.0.0",
-    "is-fullwidth-code-point": "^3.0.0",
-    "lodash": "^4.17.21",
-    "prettier": "^3.5.3",
-    "require-directory": "^2.1.1",
-    "rxjs": "^7.8.2",
-    "shell-quote": "^1.8.2",
-    "string-width": "^4.2.3",
-    "strip-ansi": "^6.0.1",
-    "supports-color": "^8.1.1",
-    "tree-kill": "^1.2.2",
-    "tslib": "^2.8.1",
-    "wrap-ansi": "^7.0.0",
-    "y18n": "^5.0.8",
-    "yargs": "^17.7.2",
-    "yargs-parser": "^21.1.1"
-  },
+  "name": "scrapsathi-microservices",
+  "version": "2.0.0",
+  "description": "ScrapSaathi - Scalable Microservices Architecture for Scrap Pickup Marketplace & Recycling Ecosystem",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "Frontend"
+  ],
   "scripts": {
-    "prettier": "prettier --write .",
-      "dev": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\"",
-      "start": "cd frontend && npm run build && cd ../backend && npm run start"
+    "start": "concurrently -n \"GATEWAY,AUTH,PICKUP,RATE,DONATION\" -c \"magenta,green,blue,yellow,cyan\" \"npm run start --prefix services/api-gateway\" \"npm run start --prefix services/auth-service\" \"npm run start --prefix services/pickup-service\" \"npm run start --prefix services/rate-service\" \"npm run start --prefix services/donation-service\"",
+    "dev:gateway": "npm run dev --prefix services/api-gateway",
+    "dev:auth": "npm run dev --prefix services/auth-service",
+    "dev:pickup": "npm run dev --prefix services/pickup-service",
+    "dev:rate": "npm run dev --prefix services/rate-service",
+    "dev:donation": "npm run dev --prefix services/donation-service",
+    "dev:frontend": "npm run dev --prefix Frontend",
+    "dev": "concurrently --kill-others-on-fail -n \"GATEWAY,AUTH,PICKUP,RATE,DONATION,FRONT\" -c \"magenta,green,blue,yellow,cyan,red\" \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:pickup\" \"npm run dev:rate\" \"npm run dev:donation\" \"npm run dev:frontend\"",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "test": "node --test --test-force-exit server/tests/integration.test.js",
+    "prettier": "prettier --write ."
   },
-  "author": "Pranav Raj, Aman Kumar",
+  "dependencies": {
+    "concurrently": "^9.1.2",
+    "prettier": "^3.5.3"
+  },
+  "author": "Aman Kumar, Pranav Raj",
   "license": "ISC"
 }

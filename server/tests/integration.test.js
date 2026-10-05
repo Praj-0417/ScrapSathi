@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 describe('ScrapSaathi Backend Integration & Caveat Verifications', () => {
   const JWT_SECRET = process.env.JWT_SECRET || 'a_very_long_secure_jwt_secret_key_for_testing_12345';
   process.env.JWT_SECRET = JWT_SECRET;
+  process.env.MongoDB = process.env.MongoDB || 'mongodb://localhost:27017/scrapsathi_test';
   process.env.NODE_ENV = 'test';
 
   // ─── 1. Auth Contract & OTP Verification Token Gate (Caveat #1 & #2) ────────

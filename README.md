@@ -1,212 +1,138 @@
-# ♻️ ScrapSaathi – Smart Waste & E-Waste Collection Platform
+# ScrapSaathi — Distributed Microservices Platform ♻️
 
-**ScrapSaathi** is a modern, full-stack web platform designed to streamline the process of waste and e-waste collection. It connects households, commercial enterprises, waste collectors, and administrators in an eco-conscious ecosystem that promotes recycling, donation, and sustainability. 🌱
+[![Microservices Architecture](https://img.shields.io/badge/Architecture-Microservices-6366f1?style=for-the-badge&logo=docker)](https://github.com/amankum2004/ScrapSathi)
+[![React Vite](https://img.shields.io/badge/Frontend-React_18_+_Vite-61dafb?style=for-the-badge&logo=react)](https://vitejs.dev)
+[![Node.js Express](https://img.shields.io/badge/Backend-Node.js_Express-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
+[![FastAPI RAG](https://img.shields.io/badge/AI_Assistant-FastAPI_+_LangChain-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
+[![Docker Compose](https://img.shields.io/badge/Orchestration-Docker_Compose_+_K8s-2496ed?style=for-the-badge&logo=kubernetes)](https://kubernetes.io)
 
----
+An enterprise-grade, distributed marketplace platform connecting households, commercial waste generators, certified waste collectors, and recycling factories. Built with domain-driven microservices, an asynchronous event model, geospatial dispatching, real-time GPS telemetry, and a retrieval-augmented generation (RAG) sustainability assistant.
 
-> ⚠️ **IMPORTANT NOTICE REGARDING LIVE DEMO**:  
-> The currently deployed site at **[scrap-sathi.vercel.app](https://scrap-sathi.vercel.app)** is a **previously hosted legacy build and does NOT reflect the current state of the application**.  
-> The platform has recently undergone major architectural refactoring (layered service-repository backend, dynamic scrap pricing, collector route tracking, and modern UI revamps). An updated production deployment is currently in progress. To view and test the latest features, please run the project locally using the setup instructions below.
-
----
-
-## 🚀 Key Features
-
-### 👤 User & Commercial Experience
-- **Doorstep Scrap Pickups**: Book pickups for E-waste, Metal, Paper, Plastic, Vehicles, and Appliances.
-- **Dynamic Scrap Rates**: Transparent live rates with instant estimation based on weight/quantity.
-- **Commercial & B2B Solutions**: Specialized bulk scrap handling for offices, institutions, and industrial units.
-- **Live Tracking & Route Maps**: Interactive status and collector route tracking powered by Leaflet maps.
-- **Secure Authentication**: OTP-based email verification, JWT session handling, and role-based access.
-- **Eco-Donations**: Support environmental causes, tree plantation drives, and partner NGOs.
-
-### 🚛 Collector Dashboard
-- Real-time pickup request discovery and job acceptance.
-- Collector route map and destination navigation.
-- Historical collection logs, status updates, and weight verification.
-
-### 🤖 AI Chatbot (RAG Assistant)
-- Integrated real-time assistant widget.
-- Powered by a **FastAPI backend** utilizing **FAISS vector database** and **Retrieval-Augmented Generation (RAG)**.
-- Delivers context-aware answers to scrap queries, recycling tips, and platform guidelines.
-
-### 🛠️ Modular Backend & Admin Panel
-- Layered **Controller-Service-Repository** architecture with centralized error handling.
-- Input validation using robust schemas.
-- Role-based authorization (`Individual`, `Collector`, `RecycleCompany`, `Admin`).
-- Full platform management: users, pickups, donations, and scrap rate configurations.
+> 💡 **Looking for the hosted single-instance deployment?**  
+> Check out the [`monolith`](https://github.com/amankum2004/ScrapSathi/tree/monolith) branch or the standalone `ScrapSathi-Monolith` folder optimized for 1-click free-tier hosting on Render / Railway.
 
 ---
 
-## 🌐 Tech Stack
+## 🏛️ System Architecture
 
-| Layer | Technologies |
-|---|---|
-| **Frontend** | React 18, Vite, Tailwind CSS, Leaflet / React-Leaflet, Lucide / React Icons, SweetAlert2 |
-| **Backend API** | Node.js, Express.js, MongoDB, Mongoose, JWT, Nodemailer |
-| **AI Assistant** | Python 3.10+, FastAPI, FAISS, Sentence-Transformers (RAG Pipeline) |
-| **Tools & Architecture** | Service-Repository Pattern, RESTful APIs, Railway / Vercel ready |
+```mermaid
+graph TD
+    UserClient["🖥️ Client Browser (React + Vite SPA)"] -->|HTTP / REST| Gateway["🚪 API Gateway (Port 8000)<br/>Reverse Proxy • Rate Limiting • CORS"]
+
+    subgraph "Distributed Microservices Cluster"
+        Gateway -->|/api/v1/auth/*| AuthService["🔐 Auth Service (Port 8010)<br/>OTP Gate • Google OAuth • Token Revocation"]
+        Gateway -->|/api/v1/pickups/*<br/>/api/v1/collector/*| PickupService["🚚 Pickup & Telemetry Service (Port 8020)<br/>State Machine • Geospatial $near • GPS Streaming"]
+        Gateway -->|/api/v1/rates/*| RateService["📊 Rate & Pricing Service (Port 8030)<br/>Authoritative Catalogs • Dynamic Quotes"]
+        Gateway -->|/api/v1/donations/*<br/>/api/v1/contact/*| DonationService["💚 Donation & Settlement Service (Port 8040)<br/>Provisional Receipts • Doorstep Settlements"]
+        Gateway -->|/api/v1/chat/*| ChatbotService["🤖 Chatbot RAG Service (Port 8001)<br/>FastAPI • FAISS • LangChain • LLM"]
+    end
+
+    subgraph "Data & Persistence Layer"
+        AuthService --> MongoDB[("🍃 MongoDB Database")]
+        PickupService --> MongoDB
+        RateService --> MongoDB
+        DonationService --> MongoDB
+        Gateway -.-> Redis[("⚡ Redis Cache & Rate Limits")]
+        ChatbotService --> FAISS[("🧠 FAISS Vector Store")]
+    end
+```
 
 ---
 
-## 🛠️ Local Development Setup
+## 📦 Microservices Domain Matrix
+
+| Microservice | Port | Technology | Key Responsibilities |
+| :--- | :---: | :--- | :--- |
+| **API Gateway** | `8000` | Node.js, Express, `http-proxy-middleware`, Helmet | Single ingress point, path-based reverse proxying, client CORS, centralized token inspection, global IP rate-limiting. |
+| **Auth Service** | `8010` | Express, Mongoose, JWT, Nodemailer, Bcrypt | User lifecycle, multi-role RBAC, cryptographically verified OTP email gate, Google OAuth ID token validation, session revocation via `tokenVersion`. |
+| **Pickup & Telemetry** | `8020` | Express, Mongoose Geospatial, Multer | Atomic conditional state machine (`ASSIGNED`, `IN_PROGRESS`, `SETTLED`), MongoDB `$near` collector dispatching, live GPS telemetry streaming. |
+| **Rate & Pricing Catalog** | `8030` | Express, Mongoose | Authoritative rate cards, dynamic quote calculations, item categories, audit logs. |
+| **Donation & Settlement** | `8040` | Express, Mongoose, Zod | Transparent eco-donations, provisional legal acknowledgements (`ACK-ECO-...`), doorstep weighment & digital payment settlement records. |
+| **Chatbot RAG Assistant** | `8001` | FastAPI, Python 3.11, LangChain, FAISS | Natural language recycling queries, chunked vector retrieval, 30s streaming timeout resilience. |
+
+---
+
+## 🚀 Key Engineering & Architecture Highlights
+
+### 1. High-Frequency Telemetry vs Read-Heavy Catalog Isolation
+- **The Problem:** Live waste-collector vehicle GPS pings occur every 5 seconds per active driver. In a monolithic database, high-frequency location writes lock collections and degrade throughput for read-heavy operations like customer scrap price queries.
+- **The Solution:** Decoupled `pickup-service` from `rate-service`. Telemetry writes scale independently without impacting user catalog browsing.
+
+### 2. Atomic State Machine & Anti-Race Condition Dispatch
+- Prevents double-assignment when two collectors attempt to accept the same pickup request concurrently.
+- Uses conditional atomic MongoDB operations:
+  ```javascript
+  const request = await PickupRequest.findOneAndUpdate(
+    { _id: id, status: 'REQUESTED' },
+    { $set: { status: 'ASSIGNED', wasteCollector: collectorId } },
+    { new: true }
+  );
+  if (!request) throw new ConflictError('Request has already been accepted by another collector');
+  ```
+
+### 3. Enterprise Auth Security & Instant Multi-Device Revocation
+- **OTP Registration Gate:** Requires a signed `verificationToken` from the OTP verification endpoint before account creation.
+- **Session Revocation:** Implements an incrementing `tokenVersion` on user records; logging out revokes all existing JWTs across all active sessions instantly.
+- **Payload Verification:** Real-time magic byte inspection (`FF D8 FF`, `89 50 4E 47`, `52 49 46 46`) prevents disguised executable uploads.
+
+---
+
+## 🛠️ Quick Start & Local Orchestration
 
 ### Prerequisites
-- Node.js (v18+) & npm
-- Python (v3.10+)
-- MongoDB instance (local or MongoDB Atlas)
+- [Docker](https://www.docker.com) and Docker Compose installed.
+- [Node.js](https://nodejs.org) (v18+ or v20+) and [npm](https://www.npmjs.com).
+
+### 1. One-Click Stack Run (Docker Compose)
+Launch the entire microservices cluster + API gateway + Redis with one command:
+```bash
+# Clone the repository
+git clone https://github.com/amankum2004/ScrapSathi.git
+cd ScrapSathi
+
+# Launch all microservices
+docker compose up --build
+```
+Once initialized:
+- **Web App (Frontend)**: `http://localhost:5173`
+- **API Gateway**: `http://localhost:8000`
+- **Gateway Health Check**: `http://localhost:8000/health`
+- **Interactive OpenAPI Spec**: `http://localhost:8000/docs`
 
 ---
 
-### 1. Backend Server (Node.js / Express)
-
+### 2. Local Development (NPM Workspaces)
+To run microservices in concurrent development mode:
 ```bash
-cd ScrapSathi/server
+# Install root workspace dependencies
 npm install
-```
 
-Configure your `.env` file (refer to `server/.env.example`):
-```env
-PORT=5000
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-EMAIL_USER=your_email@example.com
-EMAIL_PASS=your_email_app_password
-```
-
-Start the backend:
-```bash
+# Start all microservices concurrently
 npm run dev
 ```
 
 ---
 
-### 2. Frontend (React + Vite)
+## 🧪 Testing & Quality Assurance
 
+Automated integration tests validate contract stability across auth gates, geospatial queries, and quote generation:
 ```bash
-cd ScrapSathi/Frontend
-npm install
-```
-
-Configure your `.env` file (refer to `Frontend/.env.example`):
-```env
-VITE_API_URL=http://localhost:5000/api
-VITE_CHATBOT_API_URL=http://localhost:8000
-```
-
-Start the frontend development server:
-```bash
-npm run dev
+npm test
 ```
 
 ---
 
-### 3. AI Chatbot Service (FastAPI / RAG)
-
+## 📜 Monolith Deployment Alternative
+For interview demos or cost-effective hosting on free cloud platforms (Render, Railway, Fly.io):
 ```bash
-cd ScrapSathi/Backend_chatapp
-python -m venv venv
-# On Windows:
-venv\Scripts\activate
-# On Unix / macOS:
-source venv/bin/activate
+# Checkout the monolith branch
+git checkout monolith
 
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+# Refer to DEPLOYMENT.md for step-by-step instructions
 ```
 
 ---
 
-## 🐳 Docker
-
-ScrapSaathi is fully containerized using **multi-stage Docker builds** for both the backend and frontend.
-
-### Architecture
-| Container | Base Image | Description |
-|---|---|---|
-| `scrapsaathi-backend` | `node:20-alpine` (multi-stage) | Node.js API — production image with non-root user |
-| `scrapsaathi-frontend` | `node:20-alpine` → `nginx:1.27-alpine` (multi-stage) | React/Vite app built and served via Nginx |
-
-### Run with Docker Compose
-
-```bash
-# From the repo root (ScrapSaathiNew/)
-cp ScrapSathi/server/.env .env      # or edit .env directly
-
-docker compose up --build           # Build and start all services
-docker compose up -d --build        # Detached mode
-docker compose down -v              # Stop and remove volumes
-```
-
-Services exposed:
-- **Frontend** → `http://localhost:5173`
-- **Backend API** → `http://localhost:8000`
-- **Health check** → `http://localhost:8000/health`
-
-### Build Images Individually
-
-```bash
-# Backend
-docker build -t scrapsaathi-backend:latest ./ScrapSathi/server
-
-# Frontend (pass VITE_ vars as build args — they get baked into the bundle)
-docker build \
-  --build-arg VITE_PROD_BASE_URL=https://your-backend.onrender.com/api \
-  --build-arg VITE_GOOGLE_CLIENT_ID=your-client-id \
-  -t scrapsaathi-frontend:latest \
-  ./ScrapSathi/Frontend
-```
-
----
-
-## ☸️ Kubernetes
-
-Production-ready Kubernetes manifests are in [`ScrapSathi/k8s/`](./ScrapSathi/k8s/).
-
-### Manifests
-| File | Resource(s) |
-|---|---|
-| `namespace.yaml` | Namespace: `scrapsaathi` |
-| `backend-deployment.yaml` | Deployment (2 replicas) + Service + ConfigMap |
-| `backend-secret.yaml` | Secret (MongoDB URI, JWT, email credentials) |
-| `frontend-deployment.yaml` | Deployment (2 replicas) + Service + Ingress |
-
-### Features
-- **Rolling updates** — zero-downtime deployments (`maxUnavailable: 0`)
-- **Liveness & Readiness probes** — automatic pod restart + traffic management
-- **Resource limits** — CPU and memory requests/limits per container
-- **Non-root security context** — containers run as unprivileged user
-- **Ingress routing** — `/api/*` → backend, `/*` → frontend (Nginx SPA)
-- **Namespace isolation** — all resources scoped to `scrapsaathi` namespace
-
-### Deploy to a Cluster
-
-```bash
-# 1. Create namespace
-kubectl apply -f ScrapSathi/k8s/namespace.yaml
-
-# 2. Create secrets (fill in base64-encoded values first)
-kubectl apply -f ScrapSathi/k8s/backend-secret.yaml
-
-# 3. Deploy backend
-kubectl apply -f ScrapSathi/k8s/backend-deployment.yaml
-
-# 4. Deploy frontend
-kubectl apply -f ScrapSathi/k8s/frontend-deployment.yaml
-
-# 5. Check status
-kubectl get pods -n scrapsaathi
-kubectl get svc -n scrapsaathi
-kubectl get ingress -n scrapsaathi
-```
-
-### Generate base64 secrets
-```bash
-echo -n "your-mongodb-uri" | base64
-echo -n "your-jwt-secret" | base64
-```
-
----
-
-## 📄 License
-This project is open-source and available under the [MIT License](LICENSE).
+## 👥 Contributors & Authors
+- **Aman Kumar** — Full Stack & Cloud Architect ([GitHub](https://github.com/amankum2004))
+- **Pranav Raj** — Full Stack Developer ([GitHub](https://github.com/Praj-0417))

@@ -1,0 +1,8 @@
+{
+  "name": "@scrapsathi/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities, middleware, error handling, and logger for ScrapSathi microservices",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {}
+}
