@@ -1,6 +1,6 @@
 # ScrapSaathi — Distributed Microservices Platform ♻️
 
-[![Microservices Architecture](https://img.shields.io/badge/Architecture-Microservices-6366f1?style=for-the-badge&logo=docker)](https://github.com/amankum2004/ScrapSathi)
+[![Microservices Architecture](https://img.shields.io/badge/Architecture-Microservices-6366f1?style=for-the-badge&logo=docker)](https://github.com/Praj-0417/ScrapSathi)
 [![React Vite](https://img.shields.io/badge/Frontend-React_18_+_Vite-61dafb?style=for-the-badge&logo=react)](https://vitejs.dev)
 [![Node.js Express](https://img.shields.io/badge/Backend-Node.js_Express-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
 [![FastAPI RAG](https://img.shields.io/badge/AI_Assistant-FastAPI_+_LangChain-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
@@ -9,7 +9,7 @@
 An enterprise-grade, distributed marketplace platform connecting households, commercial waste generators, certified waste collectors, and recycling factories. Built with domain-driven microservices, an asynchronous event model, geospatial dispatching, real-time GPS telemetry, and a retrieval-augmented generation (RAG) sustainability assistant.
 
 > 💡 **Looking for the hosted single-instance deployment?**  
-> Check out the [`monolith`](https://github.com/amankum2004/ScrapSathi/tree/monolith) branch or the standalone `ScrapSathi-Monolith` folder optimized for 1-click free-tier hosting on Render / Railway.
+> Check out the [`monolith`](https://github.com/Praj-0417/ScrapSathi/tree/monolith) branch or the standalone `ScrapSathi-Monolith` folder optimized for 1-click free-tier hosting on Render / Railway.
 
 ---
 
@@ -87,7 +87,7 @@ graph TD
 Launch the entire microservices cluster + API gateway + Redis with one command:
 ```bash
 # Clone the repository
-git clone https://github.com/amankum2004/ScrapSathi.git
+git clone https://github.com/Praj-0417/ScrapSathi.git
 cd ScrapSathi
 
 # Launch all microservices
@@ -134,5 +134,6 @@ git checkout monolith
 ---
 
 ## 👥 Contributors & Authors
-- **Aman Kumar** — Full Stack & Cloud Architect ([GitHub](https://github.com/amankum2004))
-- **Pranav Raj** — Full Stack Developer ([GitHub](https://github.com/Praj-0417))
+- **Pranav Raj** — Full Stack & Cloud Architect ([GitHub](https://github.com/Praj-0417))
+- **Aman Kumar** — Collaborator ([GitHub](https://github.com/amankum2004))
+

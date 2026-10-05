@@ -26,6 +26,6 @@
     "concurrently": "^9.1.2",
     "prettier": "^3.5.3"
   },
-  "author": "Aman Kumar, Pranav Raj",
+  "author": "Pranav Raj, Aman Kumar",
   "license": "ISC"
 }
