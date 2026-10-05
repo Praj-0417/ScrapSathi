@@ -32,6 +32,20 @@ export default function Login() {
     import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem("scrapsaathi_google_client_id") || ""
   );
 
+  const redirectByUserRole = (userObj) => {
+    if (userObj?.role === "admin" || userObj?.userType === "admin" || userObj?.userType === "superAdmin") {
+      navigate("/AdvancedDashboard");
+    } else if (userObj?.userType === "waste-collector" || userObj?.userType === "wasteCollector") {
+      navigate("/collector-dashboard");
+    } else if (userObj?.userType === "big-organization") {
+      navigate("/organization-dashboard");
+    } else if (userObj?.userType === "recycle-company") {
+      navigate("/recycle-company-dashboard");
+    } else {
+      navigate("/individual-dashboard");
+    }
+  };
+
   // Authenticate with backend using either real Google Credential JWT or Google profile
   const executeGoogleAuth = async (authPayload) => {
     setIsGoogleLoading(true);
@@ -44,7 +58,7 @@ export default function Login() {
         await login(token, userObj);
         toast.success(`Google authentication successful! Welcome, ${userObj?.name || "Eco Champion"}`);
         setShowGoogleModal(false);
-        navigate("/individual-dashboard");
+        redirectByUserRole(userObj);
       }
     } catch (err) {
       console.error("Google Auth error:", err);
@@ -146,15 +160,7 @@ export default function Login() {
       if (token) {
         await login(token, userObj);
         toast.success(`Welcome back, ${userObj?.name || "Eco Champion"}!`);
-
-        // Role-based smart redirect
-        if (userObj?.userType === "wasteCollector") {
-          navigate("/collector-dashboard");
-        } else if (userObj?.userType === "admin" || userObj?.userType === "superAdmin") {
-          navigate("/AdvancedDashboard");
-        } else {
-          navigate("/individual-dashboard");
-        }
+        redirectByUserRole(userObj);
       }
     } catch (err) {
       console.error("Login error:", err);

@@ -38,9 +38,10 @@ function UserDashboardContent() {
   const [activeTrackingPickup, setActiveTrackingPickup] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [cancelingPickupId, setCancelingPickupId] = useState(null);
   const [payoutMethod, setPayoutMethod] = useState({
     type: "upi",
-    details: { upiId: "citizen@okhdfcbank" },
+    details: { upiId: user?.upiId || "" },
   });
 
   // Rates board state in dashboard
@@ -95,8 +96,7 @@ function UserDashboardContent() {
     fetchPickups();
   }, [fetchPickups]);
 
-  const handleCancelPickup = async (pickupId) => {
-    if (!window.confirm("Are you sure you want to cancel this scheduled pickup?")) return;
+  const executeCancelPickup = async (pickupId) => {
     try {
       await api.patch(`/v1/pickups/${pickupId}/cancel`);
       toast.success("Pickup cancelled successfully.");
@@ -107,6 +107,8 @@ function UserDashboardContent() {
     } catch (error) {
       console.error("Cancel pickup error:", error);
       toast.error(error.response?.data?.message || "Failed to cancel pickup.");
+    } finally {
+      setCancelingPickupId(null);
     }
   };
 
@@ -115,7 +117,11 @@ function UserDashboardContent() {
   // Metrics computation
   const completedPickups = safePickups.filter((p) => p?.status === "completed");
   const totalWeightRecycled = completedPickups.reduce((sum, p) => sum + (Number(p?.quantity) || 0), 0);
-  const estimatedTotalEarned = totalWeightRecycled * 22; // approx average scrap rate
+  const estimatedTotalEarned = completedPickups.reduce((sum, p) => {
+    const directAmt = Number(p?.actualAmount) || Number(p?.amount) || Number(p?.estimatedPrice);
+    if (directAmt && directAmt > 0) return sum + directAmt;
+    return sum + (Number(p?.quantity) || 0) * 22;
+  }, 0);
   const co2Offset = (totalWeightRecycled * 1.8).toFixed(1);
   const treesSaved = Math.max(0, Math.floor(totalWeightRecycled / 12));
 
@@ -144,8 +150,17 @@ function UserDashboardContent() {
   }, [liveCategories, ratesCategory, rateSearch, ratesCity]);
 
   const handleSellItem = (item) => {
+    const basket = {
+      [item.id]: {
+        ...item,
+        qty: item.unit === "piece" ? 1 : 10,
+        price: item.effectivePrice,
+      },
+    };
+    sessionStorage.setItem("scrapsaathi_selected_basket", JSON.stringify(basket));
+    sessionStorage.setItem("scrapsaathi_selected_city", ratesCity);
     sessionStorage.setItem("scrapsaathi_preselected_items", `${item.name} (${item.unit})`);
-    navigate("/sellWaste");
+    navigate("/sellWaste", { state: { basket, city: ratesCity } });
   };
 
   // Get active pickup
@@ -269,10 +284,18 @@ function UserDashboardContent() {
               <div>
                 <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
                   <TruckIcon className="w-6 h-6 text-emerald-400" />
-                  <span>Live Doorstep Collector Tracking</span>
+                  <span>
+                    {(activeTrackingPickup || activePickups[0])?.status === 'pending'
+                      ? 'Doorstep Pickup Status'
+                      : (activeTrackingPickup || activePickups[0])?.status === 'accepted'
+                      ? 'Scheduled Doorstep Pickup'
+                      : 'Live Doorstep Collector Tracking'}
+                  </span>
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400">
-                  Real-time GPS vehicle coordinates, live ETA calculation, route line, and instant executive contact.
+                  {(activeTrackingPickup || activePickups[0])?.status === 'pending'
+                    ? 'Your pickup request is broadcast to verified local collectors in your area. Live vehicle tracking activates when collector begins journey.'
+                    : 'Real-time GPS vehicle coordinates, live ETA calculation, route line, and instant executive contact.'}
                 </p>
               </div>
 
@@ -284,12 +307,12 @@ function UserDashboardContent() {
                       key={p?._id || idx}
                       onClick={() => setActiveTrackingPickup(p)}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                        activeTrackingPickup?._id === p?._id
+                        (activeTrackingPickup?._id || activePickups[0]?._id) === p?._id
                           ? "bg-emerald-500 text-white"
                           : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                       }`}
                     >
-                      Pickup #{idx + 1} ({p?.wasteType})
+                      Pickup #{idx + 1} ({p?.wasteType || p?.wasteDetails?.[0]?.wasteType || 'Scrap'})
                     </button>
                   ))}
                 </div>
@@ -299,9 +322,9 @@ function UserDashboardContent() {
             <div className="p-1 rounded-3xl bg-gradient-to-r from-emerald-500/20 via-teal-500/10 to-slate-800 border border-slate-800 shadow-2xl">
               <LiveTrackingMap
                 pickup={activeTrackingPickup || activePickups[0]}
-                collectorName="Ramesh Kumar (Verified Partner)"
-                collectorPhone="+91 98765 43210"
-                vehicleNumber="DL 3S AB 4492 (Electric Eco-Van)"
+                collectorName={(activeTrackingPickup || activePickups[0])?.wasteCollector?.name || null}
+                collectorPhone={(activeTrackingPickup || activePickups[0])?.wasteCollector?.phone || null}
+                vehicleNumber={(activeTrackingPickup || activePickups[0])?.wasteCollector?.vehicle || null}
               />
             </div>
           </div>
@@ -529,12 +552,30 @@ function UserDashboardContent() {
                         </button>
 
                         {pickup?._id && (
-                          <button
-                            onClick={() => handleCancelPickup(pickup._id)}
-                            className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-bold transition-colors cursor-pointer"
-                          >
-                            Cancel
-                          </button>
+                          cancelingPickupId === pickup._id ? (
+                            <div className="flex items-center gap-1.5 bg-slate-950/80 px-2 py-1 rounded-xl border border-rose-500/30">
+                              <span className="text-[11px] text-rose-300 font-bold">Cancel?</span>
+                              <button
+                                onClick={() => executeCancelPickup(pickup._id)}
+                                className="px-2 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-black transition-colors"
+                              >
+                                Yes
+                              </button>
+                              <button
+                                onClick={() => setCancelingPickupId(null)}
+                                className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold transition-colors"
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setCancelingPickupId(pickup._id)}
+                              className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          )
                         )}
                       </div>
                     </div>
@@ -572,7 +613,7 @@ function UserDashboardContent() {
 
                     <div className="text-right">
                       <p className="text-sm font-black text-emerald-400">
-                        +₹{(Number(history?.quantity) || 1) * 20}
+                        +₹{Number(history?.actualAmount) || Number(history?.amount) || ((Number(history?.quantity) || 1) * 20)}
                       </p>
                       <span className="text-[10px] font-bold text-slate-400 uppercase bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                         UPI Paid

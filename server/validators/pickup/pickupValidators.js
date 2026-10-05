@@ -14,9 +14,16 @@ const wasteDetailSchema = z.object({
 const createPickupSchema = z.object({
   body: z.object({
     wasteDetails: z
-      .array(wasteDetailSchema)
-      .min(1, 'At least one waste detail is required')
-      .max(APP_CONSTANTS.VALIDATION.MAX_WASTE_DETAILS, `Cannot add more than ${APP_CONSTANTS.VALIDATION.MAX_WASTE_DETAILS} waste types at once`)
+      .preprocess((val) => {
+        if (typeof val === 'string') {
+          try {
+            return JSON.parse(val);
+          } catch {
+            return val;
+          }
+        }
+        return val;
+      }, z.array(wasteDetailSchema).min(1, 'At least one waste detail is required').max(APP_CONSTANTS.VALIDATION.MAX_WASTE_DETAILS))
       .optional(),
     // Support flat form fields for single waste type (backward compat)
     wasteType: z.string().max(100).optional(),

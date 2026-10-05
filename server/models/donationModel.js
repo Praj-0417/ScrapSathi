@@ -42,15 +42,30 @@ const DonationSchema = new mongoose.Schema(
       enum: ['upi_qr', 'card', 'netbanking', 'wallet'],
       default: 'upi_qr',
     },
+    // Payment lifecycle state (Caveats #11 + #12)
     paymentStatus: {
       type: String,
-      enum: ['pending', 'completed', 'failed'],
-      default: 'completed',
+      enum: ['pending', 'completed', 'verified', 'failed'],
+      default: 'pending',
+    },
+    verificationStatus: {
+      type: String,
+      enum: ['unverified', 'reconciled', 'failed'],
+      default: 'unverified',
+    },
+    receiptType: {
+      type: String,
+      enum: ['provisional_acknowledgement', 'tax_receipt_80g'],
+      default: 'provisional_acknowledgement',
     },
     certificateId: {
       type: String,
       unique: true,
       sparse: true,
+    },
+    legalDisclaimer: {
+      type: String,
+      default: 'Provisional acknowledgement issued upon UPI intent. Official 80G tax exemption certificates are issued only after payment reconciliation.',
     },
     message: {
       type: String,

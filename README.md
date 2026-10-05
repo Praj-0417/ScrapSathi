@@ -117,5 +117,96 @@ uvicorn main:app --reload --port 8000
 
 ---
 
+## 🐳 Docker
+
+ScrapSaathi is fully containerized using **multi-stage Docker builds** for both the backend and frontend.
+
+### Architecture
+| Container | Base Image | Description |
+|---|---|---|
+| `scrapsaathi-backend` | `node:20-alpine` (multi-stage) | Node.js API — production image with non-root user |
+| `scrapsaathi-frontend` | `node:20-alpine` → `nginx:1.27-alpine` (multi-stage) | React/Vite app built and served via Nginx |
+
+### Run with Docker Compose
+
+```bash
+# From the repo root (ScrapSaathiNew/)
+cp ScrapSathi/server/.env .env      # or edit .env directly
+
+docker compose up --build           # Build and start all services
+docker compose up -d --build        # Detached mode
+docker compose down -v              # Stop and remove volumes
+```
+
+Services exposed:
+- **Frontend** → `http://localhost:5173`
+- **Backend API** → `http://localhost:8000`
+- **Health check** → `http://localhost:8000/health`
+
+### Build Images Individually
+
+```bash
+# Backend
+docker build -t scrapsaathi-backend:latest ./ScrapSathi/server
+
+# Frontend (pass VITE_ vars as build args — they get baked into the bundle)
+docker build \
+  --build-arg VITE_PROD_BASE_URL=https://your-backend.onrender.com/api \
+  --build-arg VITE_GOOGLE_CLIENT_ID=your-client-id \
+  -t scrapsaathi-frontend:latest \
+  ./ScrapSathi/Frontend
+```
+
+---
+
+## ☸️ Kubernetes
+
+Production-ready Kubernetes manifests are in [`ScrapSathi/k8s/`](./ScrapSathi/k8s/).
+
+### Manifests
+| File | Resource(s) |
+|---|---|
+| `namespace.yaml` | Namespace: `scrapsaathi` |
+| `backend-deployment.yaml` | Deployment (2 replicas) + Service + ConfigMap |
+| `backend-secret.yaml` | Secret (MongoDB URI, JWT, email credentials) |
+| `frontend-deployment.yaml` | Deployment (2 replicas) + Service + Ingress |
+
+### Features
+- **Rolling updates** — zero-downtime deployments (`maxUnavailable: 0`)
+- **Liveness & Readiness probes** — automatic pod restart + traffic management
+- **Resource limits** — CPU and memory requests/limits per container
+- **Non-root security context** — containers run as unprivileged user
+- **Ingress routing** — `/api/*` → backend, `/*` → frontend (Nginx SPA)
+- **Namespace isolation** — all resources scoped to `scrapsaathi` namespace
+
+### Deploy to a Cluster
+
+```bash
+# 1. Create namespace
+kubectl apply -f ScrapSathi/k8s/namespace.yaml
+
+# 2. Create secrets (fill in base64-encoded values first)
+kubectl apply -f ScrapSathi/k8s/backend-secret.yaml
+
+# 3. Deploy backend
+kubectl apply -f ScrapSathi/k8s/backend-deployment.yaml
+
+# 4. Deploy frontend
+kubectl apply -f ScrapSathi/k8s/frontend-deployment.yaml
+
+# 5. Check status
+kubectl get pods -n scrapsaathi
+kubectl get svc -n scrapsaathi
+kubectl get ingress -n scrapsaathi
+```
+
+### Generate base64 secrets
+```bash
+echo -n "your-mongodb-uri" | base64
+echo -n "your-jwt-secret" | base64
+```
+
+---
+
 ## 📄 License
 This project is open-source and available under the [MIT License](LICENSE).

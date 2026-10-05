@@ -15,5 +15,6 @@ router.get('/pickups',           ...guardCollector, collectorController.myPickup
 router.post('/pickups/:id/accept',   ...guardCollector, collectorController.accept);
 router.post('/pickups/:id/cancel',   ...guardCollector, collectorController.cancel);
 router.post('/pickups/:id/complete', ...guardCollector, collectorController.complete);
+router.post('/pickups/:id/location', ...guardCollector, collectorController.updateLocation);
 
 module.exports = router;

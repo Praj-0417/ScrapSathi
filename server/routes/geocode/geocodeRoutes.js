@@ -90,9 +90,18 @@ const INDIAN_LOCALITIES = [
   { name: 'Sector 17 Plaza, Chandigarh', city: 'Chandigarh', state: 'Chandigarh', lat: 30.7398, lon: 76.7827, keywords: ['sector 17', 'chandigarh'] },
 ];
 
-// Helper to query Nominatim with proper headers
+// Cache for external Nominatim calls to respect 1 req/sec policy & avoid quota exhaustion (Caveat #14)
+const nominatimCache = new Map();
+const NOMINATIM_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// Helper to query Nominatim with proper headers and cache
 function fetchFromNominatim(url) {
-  return new Promise((resolve, reject) => {
+  const cached = nominatimCache.get(url);
+  if (cached && Date.now() < cached.expiresAt) {
+    return Promise.resolve(cached.data);
+  }
+
+  return new Promise((resolve) => {
     const options = {
       headers: {
         'User-Agent': 'ScrapSaathi-Geocoding/1.0 (contact@scrapsaathi.com)',
@@ -108,7 +117,9 @@ function fetchFromNominatim(url) {
       res.on('end', () => {
         try {
           if (res.statusCode >= 200 && res.statusCode < 300) {
-            resolve(JSON.parse(data));
+            const parsed = JSON.parse(data);
+            nominatimCache.set(url, { data: parsed, expiresAt: Date.now() + NOMINATIM_CACHE_TTL_MS });
+            resolve(parsed);
           } else {
             resolve(null);
           }
@@ -259,20 +270,50 @@ router.get('/reverse', async (req, res) => {
   });
 });
 
-// ─── City Quick Selection ────────────────────────────────────────────────────
-router.get('/cities', (_req, res) => {
-  const cities = [
-    { id: 'delhi-ncr', name: 'Delhi NCR', lat: 28.6139, lon: 77.2090 },
-    { id: 'mumbai', name: 'Mumbai', lat: 19.0760, lon: 72.8777 },
-    { id: 'bengaluru', name: 'Bengaluru', lat: 12.9716, lon: 77.5946 },
-    { id: 'pune', name: 'Pune', lat: 18.5204, lon: 73.8567 },
-    { id: 'hyderabad', name: 'Hyderabad', lat: 17.3850, lon: 78.4867 },
-    { id: 'jaipur', name: 'Jaipur', lat: 26.9124, lon: 75.7873 },
-    { id: 'lucknow', name: 'Lucknow', lat: 26.8467, lon: 80.9462 },
-    { id: 'kolkata', name: 'Kolkata', lat: 22.5726, lon: 88.3639 },
-    { id: 'chennai', name: 'Chennai', lat: 13.0827, lon: 80.2707 },
-  ];
-  return success(res, { data: cities });
+// ─── Supported Service Hubs & Serviceability Validation (Caveat #14) ────────
+const SERVICE_HUBS = [
+  { id: 'delhi-ncr', name: 'Delhi NCR', lat: 28.6139, lon: 77.2090, maxRadiusKm: 50 },
+  { id: 'mumbai', name: 'Mumbai MMR', lat: 19.0760, lon: 72.8777, maxRadiusKm: 45 },
+  { id: 'bengaluru', name: 'Bengaluru', lat: 12.9716, lon: 77.5946, maxRadiusKm: 40 },
+  { id: 'pune', name: 'Pune', lat: 18.5204, lon: 73.8567, maxRadiusKm: 35 },
+  { id: 'hyderabad', name: 'Hyderabad', lat: 17.3850, lon: 78.4867, maxRadiusKm: 40 },
+  { id: 'jaipur', name: 'Jaipur', lat: 26.9124, lon: 75.7873, maxRadiusKm: 30 },
+  { id: 'lucknow', name: 'Lucknow', lat: 26.8467, lon: 80.9462, maxRadiusKm: 30 },
+  { id: 'kolkata', name: 'Kolkata', lat: 22.5726, lon: 88.3639, maxRadiusKm: 35 },
+  { id: 'chennai', name: 'Chennai', lat: 13.0827, lon: 80.2707, maxRadiusKm: 35 },
+];
+
+function checkServiceability(lat, lon) {
+  const toRad = (x) => (x * Math.PI) / 180;
+  for (const hub of SERVICE_HUBS) {
+    const dLat = toRad(hub.lat - lat);
+    const dLon = toRad(hub.lon - lon);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat)) * Math.cos(toRad(hub.lat)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const distanceKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    if (distanceKm <= hub.maxRadiusKm) {
+      return { serviceable: true, hub: hub.name, hubId: hub.id, distanceKm: parseFloat(distanceKm.toFixed(1)) };
+    }
+  }
+  return { serviceable: false, nearestHub: null };
+}
+
+// ─── Serviceability Check Endpoint (Caveat #14) ──────────────────────────────
+router.get('/serviceable', (req, res) => {
+  const lat = parseFloat(req.query.lat);
+  const lon = parseFloat(req.query.lon || req.query.lng);
+
+  if (isNaN(lat) || isNaN(lon)) {
+    return apiErrorResponse(res, { statusCode: 400, message: 'Valid lat and lon query parameters are required' });
+  }
+
+  const result = checkServiceability(lat, lon);
+  return success(res, {
+    message: result.serviceable ? 'Location is within active service coverage' : 'Location currently outside active service coverage',
+    data: result,
+  });
 });
 
 module.exports = router;

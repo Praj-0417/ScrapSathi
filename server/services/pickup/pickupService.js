@@ -25,16 +25,60 @@ class PickupService {
       scheduledDate,
       longitude,
       latitude,
+      customerNotes,
+      city = 'delhi-ncr',
     } = data;
 
     // Normalize wasteDetails — support both array and flat fields
-    const normalizedWasteDetails = wasteDetails && wasteDetails.length > 0
-      ? wasteDetails
-      : [{ wasteType, subcategory, quantity: Number(quantity), unit }];
+    let normalizedWasteDetails = wasteDetails;
+    if (typeof normalizedWasteDetails === 'string') {
+      try {
+        normalizedWasteDetails = JSON.parse(normalizedWasteDetails);
+      } catch (err) {
+        normalizedWasteDetails = null;
+      }
+    }
+    if (!normalizedWasteDetails || normalizedWasteDetails.length === 0) {
+      normalizedWasteDetails = [{ wasteType, subcategory, quantity: Number(quantity), unit }];
+    }
 
     if (!normalizedWasteDetails[0]?.wasteType || !normalizedWasteDetails[0]?.quantity) {
       throw new ApiError(ERROR_CODES.BAD_REQUEST);
     }
+
+    // ── Server-side quote calculation (Caveat #6) ──────────────────────────
+    // Load all rate categories once and build a flat map: wasteType.toLowerCase() → unitRate
+    const ScrapRateCategory = require('../../models/scrapRateModel');
+    const rateCategories = await ScrapRateCategory.find({ active: true }).lean().catch(() => []);
+    const rateMap = {};
+    for (const cat of rateCategories) {
+      for (const item of cat.items || []) {
+        if (item.active !== false) {
+          const key = (item.name || item.itemId || '').toLowerCase();
+          rateMap[key] = item.prices instanceof Map
+            ? (item.prices.get(city) ?? item.prices.get('delhi-ncr') ?? 0)
+            : (item.prices?.[city] ?? item.prices?.['delhi-ncr'] ?? 0);
+        }
+      }
+    }
+
+    const rateSnapshotDate = new Date();
+    const quoteItems = normalizedWasteDetails.map((detail) => {
+      const key = (detail.wasteType || '').toLowerCase();
+      const unitRate = rateMap[key] ?? 0;
+      const qty = Number(detail.quantity) || 0;
+      return {
+        wasteType:   detail.wasteType,
+        subcategory: detail.subcategory,
+        quantity:    qty,
+        unit:        detail.unit || unit,
+        unitRate,
+        lineTotal:   parseFloat((unitRate * qty).toFixed(2)),
+      };
+    });
+    const totalEstimate = parseFloat(
+      quoteItems.reduce((s, l) => s + l.lineTotal, 0).toFixed(2),
+    );
 
     // Upload image to Cloudinary if provided
     let imageUrl = null;
@@ -52,8 +96,10 @@ class PickupService {
     const pickupPayload = {
       userId,
       wasteDetails: normalizedWasteDetails,
+      quote: { items: quoteItems, city, currency: 'INR', totalEstimate, rateSnapshotDate },
       address,
       preferredTimeSlot,
+      ...(customerNotes ? { customerNotes } : {}),
       ...(scheduledDate ? { scheduledDate } : {}),
       ...(imageUrl ? { imageUrl, imagePublicId } : {}),
       statusHistory: [{ status: PICKUP_REQUEST_STATUS.PENDING, actorId: userId }],
@@ -110,6 +156,36 @@ class PickupService {
       throw new ApiError(ERROR_CODES.PICKUP_INVALID_CANCEL);
     }
     return cancelled;
+  }
+
+  /**
+   * Get authenticated live tracking telemetry for customer or assigned collector (Caveat #10)
+   */
+  async getPickupTracking(pickupId, userId) {
+    const pickup = await pickupRepository.getLiveTracking(pickupId);
+    if (!pickup) throw new ApiError(ERROR_CODES.NOT_FOUND);
+
+    const isOwner = (pickup.userId?._id || pickup.userId)?.toString() === userId;
+    const isCollector = (pickup.wasteCollector?._id || pickup.wasteCollector)?.toString() === userId;
+    if (!isOwner && !isCollector) {
+      throw new ApiError(ERROR_CODES.TRACKING_NOT_ALLOWED);
+    }
+
+    const live = pickup.liveTracking || null;
+    let isStale = false;
+    if (live?.updatedAt) {
+      isStale = Date.now() - new Date(live.updatedAt).getTime() > 5 * 60 * 1000;
+    }
+
+    return {
+      pickupId: pickup._id,
+      status: pickup.status,
+      collector: pickup.wasteCollector || null,
+      destination: pickup.location || null,
+      address: pickup.address,
+      liveTracking: live,
+      isStale,
+    };
   }
 }
 

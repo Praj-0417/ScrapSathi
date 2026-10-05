@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Check, Wallet, Smartphone, Banknote, Building, ShieldCheck, ArrowRight, Sparkles } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export default function PayoutMethodModal({
   isOpen,
   onClose,
   estimatedAmount = 450,
-  selectedMethod = 'upi',
+  selectedMethod,
+  currentMethod,
   onSelectMethod,
+  onSelect,
 }) {
-  const [method, setMethod] = useState(selectedMethod);
-  const [upiId, setUpiId] = useState('');
+  const initialMethod = currentMethod?.type || (typeof selectedMethod === 'string' ? selectedMethod : 'upi');
+  const initialUpi = currentMethod?.details?.upiId || '';
+
+  const [method, setMethod] = useState(initialMethod);
+  const [upiId, setUpiId] = useState(initialUpi);
   const [bankDetails, setBankDetails] = useState({
     accountNumber: '',
     confirmAccount: '',
@@ -18,33 +24,43 @@ export default function PayoutMethodModal({
   });
   const [isSaved, setIsSaved] = useState(false);
 
+  useEffect(() => {
+    if (currentMethod) {
+      if (currentMethod.type) setMethod(currentMethod.type);
+      if (currentMethod.details?.upiId) setUpiId(currentMethod.details.upiId);
+    }
+  }, [currentMethod]);
+
   if (!isOpen) return null;
 
   const handleSave = (e) => {
     e.preventDefault();
     if (method === 'upi' && !upiId.trim()) {
-      alert('Please enter a valid UPI ID (e.g., yourname@oksbi)');
+      toast.error('Please enter a valid UPI ID (e.g., yourname@oksbi)');
       return;
     }
     if (method === 'bank') {
       if (!bankDetails.accountNumber || bankDetails.accountNumber !== bankDetails.confirmAccount || !bankDetails.ifsc) {
-        alert('Please fill valid bank account and matching IFSC details.');
+        toast.error('Please fill valid bank account and matching IFSC details.');
         return;
       }
     }
 
-    if (onSelectMethod) {
-      onSelectMethod({
-        method,
-        details: method === 'upi' ? { upiId } : method === 'bank' ? bankDetails : {},
-      });
-    }
+    const payload = {
+      type: method,
+      method,
+      details: method === 'upi' ? { upiId: upiId.trim() } : method === 'bank' ? bankDetails : {},
+    };
 
+    if (onSelect) onSelect(payload);
+    if (onSelectMethod) onSelectMethod(payload);
+
+    toast.success('Payout preference updated successfully!');
     setIsSaved(true);
     setTimeout(() => {
       setIsSaved(false);
       onClose();
-    }, 1200);
+    }, 800);
   };
 
   const payoutOptions = [

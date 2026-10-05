@@ -23,16 +23,16 @@ export default function Footer() {
             </p>
 
             <div className="pt-2 flex items-center gap-4 text-slate-400">
-              <a href="https://wa.me/919876543210" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
+              <a href="https://wa.me/919876543210" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp ScrapSaathi" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
                 <FaWhatsapp size={18} />
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
+              <a href="https://instagram.com/scrapsaathi" target="_blank" rel="noopener noreferrer" aria-label="Instagram ScrapSaathi" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
                 <FaInstagram size={18} />
               </a>
-              <a href="https://linkedin.com" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
+              <a href="https://linkedin.com/company/scrapsaathi" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn ScrapSaathi" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
                 <FaLinkedin size={18} />
               </a>
-              <a href="https://twitter.com" target="_blank" rel="noreferrer" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
+              <a href="https://twitter.com/scrapsaathi" target="_blank" rel="noopener noreferrer" aria-label="Twitter ScrapSaathi" className="w-9 h-9 rounded-xl bg-slate-900 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-colors">
                 <FaTwitter size={18} />
               </a>
             </div>
@@ -141,7 +141,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-slate-900 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
-          <p>© {new Date().getFullYear()} ScrapSaathi Technologies Pvt. Ltd. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} ScrapSaathi Technologies. All rights reserved.</p>
           <div className="flex gap-6">
             <Link to="/about" className="hover:text-slate-400 transition-colors">About</Link>
             <Link to="/contact" className="hover:text-slate-400 transition-colors">Contact</Link>

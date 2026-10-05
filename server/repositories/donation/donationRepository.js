@@ -34,6 +34,14 @@ class DonationRepository {
     ]);
     return { docs, total, page, limit, pages: Math.ceil(total / limit) };
   }
+
+  async findById(id) {
+    return Donation.findById(id).populate('userId', 'name email').lean();
+  }
+
+  async update(id, updates) {
+    return Donation.findByIdAndUpdate(id, updates, { new: true });
+  }
 }
 
 module.exports = new DonationRepository();

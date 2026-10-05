@@ -51,4 +51,13 @@ const cancel = async (req, res, next) => {
   }
 };
 
-module.exports = { create, listMyPickups, getOne, cancel };
+const getTracking = async (req, res, next) => {
+  try {
+    const tracking = await pickupService.getPickupTracking(req.params.id, req.user.userId);
+    return success(res, { message: 'Tracking details retrieved', data: tracking });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { create, listMyPickups, getOne, cancel, getTracking };

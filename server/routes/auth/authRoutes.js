@@ -25,9 +25,11 @@ router.post('/logout',       protect,                                 authContro
 // ─── OTP ───────────────────────────────────────────────────────────────────
 router.post('/otp/send-registration', otpRateLimit, validate(sendOtpSchema),   authController.sendRegistrationOtp);
 router.post('/otp/send-reset',        otpRateLimit, validate(sendOtpSchema),   authController.sendPasswordResetOtp);
+router.post('/otp/send-otp',          otpRateLimit, validate(sendOtpSchema),   authController.sendPasswordResetOtp);
 router.post('/otp/verify',            otpRateLimit, validate(verifyOtpSchema), authController.verifyOtp);
 
 // ─── Password ──────────────────────────────────────────────────────────────
 router.post('/password/reset', authRateLimit, validate(resetPasswordSchema), authController.resetPassword);
+router.post('/update',         authRateLimit, validate(resetPasswordSchema), authController.resetPassword);
 
 module.exports = router;

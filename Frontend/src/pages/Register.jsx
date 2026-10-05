@@ -50,6 +50,20 @@ export default function Register() {
     import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem("scrapsaathi_google_client_id") || ""
   );
 
+  const redirectByUserRole = (userObj) => {
+    if (userObj?.role === "admin" || userObj?.userType === "admin" || userObj?.userType === "superAdmin") {
+      navigate("/AdvancedDashboard");
+    } else if (userObj?.userType === "waste-collector" || userObj?.userType === "wasteCollector") {
+      navigate("/collector-dashboard");
+    } else if (userObj?.userType === "big-organization") {
+      navigate("/organization-dashboard");
+    } else if (userObj?.userType === "recycle-company") {
+      navigate("/recycle-company-dashboard");
+    } else {
+      navigate("/individual-dashboard");
+    }
+  };
+
   // Authenticate with backend using either real Google Credential JWT or Google profile
   const executeGoogleAuth = async (authPayload) => {
     setIsGoogleLoading(true);
@@ -62,7 +76,7 @@ export default function Register() {
         await login(token, userObj);
         toast.success(`Google registration successful! Welcome, ${userObj?.name || "Eco Champion"}`);
         setShowGoogleModal(false);
-        navigate("/individual-dashboard");
+        redirectByUserRole(userObj);
       }
     } catch (err) {
       console.error("Google Auth error:", err);
@@ -199,12 +213,7 @@ export default function Register() {
       if (token) {
         await login(token, userObj);
         toast.success(`Account created successfully! Welcome, ${userObj?.name || "Eco Champion"}!`);
-
-        if (userType === "waste-collector") {
-          navigate("/collector-dashboard");
-        } else {
-          navigate("/individual-dashboard");
-        }
+        redirectByUserRole(userObj || { userType });
       } else {
         toast.success("Account created! Please sign in.");
         navigate("/login");
@@ -476,7 +485,7 @@ export default function Register() {
                 className="w-4 h-4 mt-0.5 accent-emerald-500 rounded cursor-pointer"
               />
               <label htmlFor="termsAccepted" className="text-xs text-slate-400 leading-relaxed cursor-pointer">
-                I agree to ScrapSaathi's <span className="text-emerald-400 font-bold">Terms of Service</span>, <span className="text-emerald-400 font-bold">Privacy Policy</span>, and verified scale weighment protocols.
+                I agree to ScrapSaathi's <Link to="/terms" className="text-emerald-400 font-bold hover:underline">Terms of Service</Link>, <Link to="/privacy-policy" className="text-emerald-400 font-bold hover:underline">Privacy Policy</Link>, and verified scale weighment protocols.
               </label>
             </div>
             {errors.terms && (

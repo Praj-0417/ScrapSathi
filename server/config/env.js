@@ -9,6 +9,7 @@ const envSchema = z.object({
   MongoDB: z.string().min(1, 'MongoDB connection string is required'),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long'),
   JWT_EXPIRES_IN: z.string().default('24h'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
   CLIENT_ORIGINS: z.string().optional(),
   // Email (optional — primary & fallback)
   EMAIL: z.string().email().optional().or(z.literal('')),

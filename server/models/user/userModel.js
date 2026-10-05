@@ -43,6 +43,9 @@ const UserSchema = new mongoose.Schema(
     },
     otpVerified: { type: Boolean, default: false },
     termsAccepted: { type: Boolean, default: true },
+    // ── Token revocation (Caveat #4) ─────────────────────────────────────────
+    // Incrementing this field invalidates all JWTs issued with the old version.
+    tokenVersion: { type: Number, default: 0, select: false },
     role: {
       type: String,
       enum: Object.values(ROLES),

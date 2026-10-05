@@ -13,16 +13,33 @@ export const LoginProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const isTokenExpired = (jwtToken) => {
+    try {
+      const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+      return payload.exp ? payload.exp * 1000 < Date.now() : false;
+    } catch {
+      return true;
+    }
+  };
+
   const fetchUserProfile = async () => {
+    const token = localStorage.getItem('token');
+    if (!token || isTokenExpired(token)) {
+      logout();
+      return;
+    }
+
     try {
       const response = await api.get('/v1/users/me');
       const userData = response.data?.data?.user || response.data?.user || response.data;
       setUser(userData);
       setLoggedIn(true);
     } catch (error) {
-      // If token expired or invalid, decode from token as fallback
-      const token = localStorage.getItem('token');
-      if (token) {
+      // If 401 / 403, session is invalid or revoked — do not keep user logged in
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout();
+      } else {
+        // Network or offline fallback only if token is still valid
         try {
           const decoded = JSON.parse(atob(token.split('.')[1]));
           setUser(decoded);
@@ -30,8 +47,6 @@ export const LoginProvider = ({ children }) => {
         } catch {
           logout();
         }
-      } else {
-        logout();
       }
     }
   };
@@ -40,13 +55,19 @@ export const LoginProvider = ({ children }) => {
     const checkUserStatus = async () => {
       const token = localStorage.getItem('token');
       if (token) {
-        try {
-          const decoded = JSON.parse(atob(token.split('.')[1]));
-          setUser(decoded);
-          setLoggedIn(true);
-          await fetchUserProfile();
-        } catch {
+        if (isTokenExpired(token)) {
           localStorage.removeItem('token');
+          setUser(null);
+          setLoggedIn(false);
+        } else {
+          try {
+            const decoded = JSON.parse(atob(token.split('.')[1]));
+            setUser(decoded);
+            setLoggedIn(true);
+            await fetchUserProfile();
+          } catch {
+            localStorage.removeItem('token');
+          }
         }
       }
       setLoading(false);

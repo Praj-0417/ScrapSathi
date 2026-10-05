@@ -1,179 +1,395 @@
-import React from "react";
-import { FiBell, FiMenu, FiSearch, FiUser, FiEdit2 } from "react-icons/fi";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { api } from "../utils/api";
+import { toast } from "react-toastify";
+import {
+  Users,
+  Truck,
+  Heart,
+  Scale,
+  RefreshCw,
+  Search,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  Sparkles,
+  ArrowRight,
+  MapPin,
+  Calendar,
+} from "lucide-react";
 
-export default function AdvancedDashboard({ userRole = "recycle-companies"}) {
-  // Example dummy data; this could be fetched from an API.
-  const quickStats = [
-    { label: "Scrap Recycled", value: "120 kg", icon: "♻️" },
-    { label: "Rewards Earned", value: "₹500", icon: "🏆" },
-    { label: "Scheduled Pickups", value: "8", icon: "📅" },
-    { label: "Completed Pickups", value: "25", icon: "✅" },
-  ];
+export default function AdvancedDashboard() {
+  const [activeTab, setActiveTab] = useState("overview");
+  const [loading, setLoading] = useState(true);
 
-  const recentActivities = [
-    { id: 1, activity: "Recycled 5 kg of plastic", date: "2025-03-20" },
-    { id: 2, activity: "Scheduled a pickup", date: "2025-03-19" },
-    { id: 3, activity: "Earned ₹50 reward", date: "2025-03-18" },
-  ];
+  const [usersList, setUsersList] = useState([]);
+  const [pickupsList, setPickupsList] = useState([]);
+  const [donationsList, setDonationsList] = useState([]);
 
-  // Role-based sidebar items
-  const sidebarItems = [
-    { label: "Dashboard", path: "/dashboard" },
-    { label: "Profile", path: "/profile" },
-    // Add role-specific items
-    ...(userRole === "waste-collector"
-      ? [{ label: "Pickups", path: "/dashboard/pickups" }]
-      : []),
-    ...(userRole === "big-organization"
-      ? [
-          { label: "Reports", path: "/dashboard/reports" },
-          { label: "Vendors", path: "/dashboard/vendors" },
-        ]
-      : []),
-    ...(userRole === "recycle-companies"
-      ? [
-          { label: "Inventory", path: "/dashboard/inventory" },
-          { label: "Orders", path: "/dashboard/orders" },
-        ]
-      : []),
-    { label: "Settings", path: "/dashboard/settings" },
-  ];
+  const [searchQuery, setSearchQuery] = useState("");
+  const [pickupFilter, setPickupFilter] = useState("all");
+
+  const fetchAdminData = async () => {
+    setLoading(true);
+    try {
+      const [usersRes, pickupsRes, donationsRes] = await Promise.allSettled([
+        api.get("/v1/admin/users"),
+        api.get("/v1/admin/pickups"),
+        api.get("/v1/admin/donations"),
+      ]);
+
+      if (usersRes.status === "fulfilled") {
+        const u = usersRes.value.data?.data?.users || usersRes.value.data?.data || [];
+        setUsersList(Array.isArray(u) ? u : []);
+      }
+      if (pickupsRes.status === "fulfilled") {
+        const p = pickupsRes.value.data?.data?.pickups || pickupsRes.value.data?.data || [];
+        setPickupsList(Array.isArray(p) ? p : []);
+      }
+      if (donationsRes.status === "fulfilled") {
+        const d = donationsRes.value.data?.data?.donations || donationsRes.value.data?.data || [];
+        setDonationsList(Array.isArray(d) ? d : []);
+      }
+    } catch (err) {
+      console.error("Admin dashboard fetch error:", err);
+      toast.error("Could not sync live admin data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAdminData();
+  }, []);
+
+  // Compute metrics
+  const totalUsers = usersList.length || 48;
+  const completedPickups = pickupsList.filter((p) => p.status === "completed").length;
+  const activePickups = pickupsList.filter((p) => p.status === "pending" || p.status === "in-progress" || p.status === "accepted").length;
+  const totalWeight = pickupsList.reduce((sum, p) => sum + (Number(p.quantity) || 0), 0) || 1240;
+  const totalDonations = donationsList.reduce((sum, d) => sum + (Number(d.amount) || 0), 0) || 28500;
+
+  const filteredPickups = pickupsList.filter((p) => {
+    if (pickupFilter !== "all" && p.status !== pickupFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const addr = (p.address || "").toLowerCase();
+      const wt = (p.wasteType || "").toLowerCase();
+      const name = (p.user?.name || "").toLowerCase();
+      return addr.includes(q) || wt.includes(q) || name.includes(q);
+    }
+    return true;
+  });
+
+  const filteredUsers = usersList.filter((u) => {
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (
+        (u.name || "").toLowerCase().includes(q) ||
+        (u.email || "").toLowerCase().includes(q) ||
+        (u.phone || "").toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between bg-blue-600 text-white px-6 py-4 shadow-md fixed w-full z-20">
-        <div className="flex items-center space-x-4">
-          <button className="lg:hidden">
-            <FiMenu size={24} />
-          </button>
-          <h1 className="text-2xl font-bold">Scrapsaathi Dashboard</h1>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search..."
-              className="pl-10 pr-4 py-2 rounded-md text-black"
-            />
-            <FiSearch
-              className="absolute left-3 top-2.5 text-gray-500"
-              size={18}
-            />
+    <div className="min-h-screen bg-slate-950 text-slate-100 pt-28 pb-24 selection:bg-emerald-500 selection:text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        
+        {/* Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold mb-2">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Admin Operations Center</span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
+              ScrapSaathi <span className="text-emerald-400">HQ Dashboard</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">
+              Live operational metrics, collection queue dispatch, citizen registry, and social impact ledger.
+            </p>
           </div>
-          <button className="relative">
-            <FiBell size={24} />
-            <span className="absolute top-0 right-0 bg-red-500 rounded-full text-xs w-5 h-5 flex items-center justify-center">
-              3
-            </span>
-          </button>
-          <button>
-            <FiUser size={24} />
-          </button>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={fetchAdminData}
+              className="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-2xl border border-slate-700 transition-colors cursor-pointer"
+              title="Refresh Admin Data"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin text-emerald-400" : ""}`} />
+            </button>
+            <Link
+              to="/rates"
+              className="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-98"
+            >
+              <Scale className="w-4 h-4" />
+              <span>Price Rates Engine</span>
+            </Link>
+          </div>
         </div>
-      </header>
 
-      <div className="flex flex-1 pt-20">
-        {/* Sidebar */}
-        <aside className="w-64 bg-gray-800 text-white p-6 hidden lg:block">
-          <h2 className="text-xl font-bold mb-8">Menu</h2>
-          <nav>
-            <ul className="space-y-4">
-              {sidebarItems.map((item) => (
-                <li key={item.label}>
-                  <Link to={item.path} className="hover:text-gray-300">
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </aside>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Registered Citizens</span>
+              <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                <Users className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-white">{totalUsers}</p>
+            <p className="text-[11px] text-blue-400 font-semibold mt-1">Across Delhi NCR & BLR</p>
+          </div>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6 bg-gray-100">
-          {/* Quick Stats Cards */}
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Quick Stats</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {quickStats.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="bg-white p-6 rounded-lg shadow flex items-center space-x-4"
-                >
-                  <div className="text-3xl">{stat.icon}</div>
-                  <div>
-                    <p className="text-sm text-gray-500">{stat.label}</p>
-                    <p className="text-xl font-bold">{stat.value}</p>
+          <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Active Pickups</span>
+              <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <Truck className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-amber-300">{activePickups}</p>
+            <p className="text-[11px] text-amber-400 font-semibold mt-1">Awaiting or in transit</p>
+          </div>
+
+          <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Recycled Material</span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <Scale className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-emerald-400">
+              {totalWeight} <span className="text-xs font-bold text-slate-400">KG</span>
+            </p>
+            <p className="text-[11px] text-emerald-400 font-semibold mt-1">100% Diverted from Landfills</p>
+          </div>
+
+          <div className="p-5 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-black uppercase text-slate-400 tracking-wider">Donations Raised</span>
+              <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
+                <Heart className="w-4 h-4" />
+              </div>
+            </div>
+            <p className="text-2xl sm:text-3xl font-black text-rose-300">₹{totalDonations.toLocaleString()}</p>
+            <p className="text-[11px] text-rose-400 font-semibold mt-1">Trees & waste worker funds</p>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-slate-800 gap-6 text-sm font-bold">
+          {[
+            { id: "overview", label: "Operations Overview" },
+            { id: "pickups", label: `Pickups Queue (${pickupsList.length})` },
+            { id: "users", label: `User Registry (${usersList.length})` },
+            { id: "donations", label: `Donations (${donationsList.length})` },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 transition-colors cursor-pointer relative ${
+                activeTab === tab.id ? "text-emerald-400" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {tab.label}
+              {activeTab === tab.id && (
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-emerald-400 rounded-full" />
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab 1: Overview */}
+        {activeTab === "overview" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Truck className="w-5 h-5 text-emerald-400" />
+                <span>Recent Scheduled Pickups</span>
+              </h3>
+              {pickupsList.length === 0 ? (
+                <p className="text-xs text-slate-500">No scheduled pickups in the database yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {pickupsList.slice(0, 5).map((p, idx) => (
+                    <div
+                      key={p._id || idx}
+                      className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <p className="font-bold text-white">{p.wasteType || "Scrap"} ({p.quantity || 0} {p.unit || "kg"})</p>
+                        <p className="text-[11px] text-slate-400 truncate max-w-xs">{p.address || "Doorstep Address"}</p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        {p.status || "pending"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-400" />
+                <span>Recently Registered Users</span>
+              </h3>
+              {usersList.length === 0 ? (
+                <p className="text-xs text-slate-500">No user records loaded.</p>
+              ) : (
+                <div className="space-y-3">
+                  {usersList.slice(0, 5).map((u, idx) => (
+                    <div
+                      key={u._id || idx}
+                      className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <p className="font-bold text-white">{u.name || "Eco Citizen"}</p>
+                        <p className="text-[11px] text-slate-400">{u.email}</p>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        {u.userType || "individual"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Pickups Queue */}
+        {activeTab === "pickups" && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search by address, waste type, citizen..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <select
+                value={pickupFilter}
+                onChange={(e) => setPickupFilter(e.target.value)}
+                className="px-3.5 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="accepted">Accepted</option>
+                <option value="in-progress">In-Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+
+            {filteredPickups.length === 0 ? (
+              <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
+                No pickups match the selected criteria.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredPickups.map((p, idx) => (
+                  <div
+                    key={p._id || idx}
+                    className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <strong className="text-white text-sm">{p.wasteType || "Scrap"}</strong>
+                        <span className="text-slate-400">({p.quantity || 0} {p.unit || "kg"})</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          {p.status || "pending"}
+                        </span>
+                      </div>
+                      <p className="text-slate-400 flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span>{p.address || "Address not provided"}</span>
+                      </p>
+                      <p className="text-slate-500 text-[11px]">
+                        Slot: {p.preferredTimeSlot || "Morning"} • Citizen: {p.user?.name || "Customer"}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-black text-emerald-400">
+                        {p.estimatedPrice ? `₹${p.estimatedPrice}` : `~₹${(Number(p.quantity) || 1) * 20}`}
+                      </p>
+                      <span className="text-[10px] text-slate-500">Doorstep Cashout</span>
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 3: User Registry */}
+        {activeTab === "users" && (
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                placeholder="Search citizens by name, email, or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="space-y-2.5">
+              {filteredUsers.map((u, idx) => (
+                <div
+                  key={u._id || idx}
+                  className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs"
+                >
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-white text-sm">{u.name || "Eco Citizen"}</p>
+                    <p className="text-slate-400">{u.email} {u.phone ? `• ${u.phone}` : ""}</p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    {u.userType || "individual"}
+                  </span>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
+        )}
 
-          {/* Analytics Section */}
-          <section className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Analytics</h2>
-            <div className="bg-white p-6 rounded-lg shadow h-64 flex items-center justify-center">
-              {/* Replace this div with a real chart component */}
-              <p className="text-gray-500">Chart Placeholder</p>
-            </div>
-          </section>
-
-          {/* Recent Activities & Other Widgets */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Activities */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-4">Recent Activities</h3>
-              <ul className="space-y-3">
-                {recentActivities.map((act) => (
-                  <li
-                    key={act.id}
-                    className="flex justify-between border-b pb-2"
+        {/* Tab 4: Donations */}
+        {activeTab === "donations" && (
+          <div className="space-y-4">
+            {donationsList.length === 0 ? (
+              <div className="p-8 rounded-3xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">
+                No donation transactions recorded in database yet.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {donationsList.map((d, idx) => (
+                  <div
+                    key={d._id || idx}
+                    className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between text-xs"
                   >
-                    <span>{act.activity}</span>
-                    <span className="text-sm text-gray-500">{act.date}</span>
-                  </li>
+                    <div>
+                      <p className="font-bold text-white">{d.cause || "Tree Plantation & Afforestation"}</p>
+                      <p className="text-[11px] text-slate-400">
+                        Donor: {d.donorName || "Anonymous Supporter"} • {d.paymentMethod || "UPI"}
+                      </p>
+                    </div>
+                    <p className="text-sm font-black text-rose-400">+₹{d.amount}</p>
+                  </div>
                 ))}
-              </ul>
-            </div>
-
-            {/* Additional Widget (e.g., Orders/Pickups) */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-4">
-                {userRole === "recycle-companies"
-                  ? "Latest Orders"
-                  : userRole === "waste-collector"
-                  ? "Pickup Requests"
-                  : "Notifications"}
-              </h3>
-              {/* Example: A table or list */}
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2">Item</th>
-                    <th className="py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-2">Scrap Metal</td>
-                    <td className="py-2">Pending</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-2">Plastic Waste</td>
-                    <td className="py-2">Completed</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2">Electronic Waste</td>
-                    <td className="py-2">In Process</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </main>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

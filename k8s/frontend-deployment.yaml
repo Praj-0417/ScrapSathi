@@ -1,0 +1,115 @@
+# ─── ScrapSaathi Frontend — Kubernetes Deployment ─────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrapsaathi-frontend
+  namespace: scrapsaathi
+  labels:
+    app: scrapsaathi
+    component: frontend
+    version: "1.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: scrapsaathi
+      component: frontend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: scrapsaathi
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: scrapsaathi-frontend:latest # Replace with your registry image
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /nginx-health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /nginx-health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+      restartPolicy: Always
+
+---
+# ─── Frontend Service ──────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: scrapsaathi-frontend-svc
+  namespace: scrapsaathi
+  labels:
+    app: scrapsaathi
+    component: frontend
+spec:
+  selector:
+    app: scrapsaathi
+    component: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+  type: ClusterIP
+
+---
+# ─── Ingress — Route traffic to frontend and backend ──────────────────────────
+# Requires an Ingress controller (e.g., nginx-ingress, traefik) in the cluster
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scrapsaathi-ingress
+  namespace: scrapsaathi
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Uncomment for TLS with cert-manager:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  # tls:
+  #   - hosts:
+  #       - scrapsaathi.example.com
+  #     secretName: scrapsaathi-tls
+  rules:
+    - host: scrapsaathi.example.com # Replace with your domain
+      http:
+        paths:
+          # API traffic → backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: scrapsaathi-backend-svc
+                port:
+                  number: 8000
+          # All other traffic → frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: scrapsaathi-frontend-svc
+                port:
+                  number: 80

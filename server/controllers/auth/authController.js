@@ -5,13 +5,25 @@ const { success } = require('../../utils/apiResponse');
 const { ApiError } = require('../../utils/ApiError');
 const { HTTP_STATUS, ERROR_CODES, MESSAGES } = require('../../constants');
 
+// ── Cookie helper ─────────────────────────────────────────────────────────────
+const setAuthCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+};
+
 const register = async (req, res, next) => {
   try {
-    const user = await authService.register(req.body);
+    // register() now returns { user, token } after verifying the OTP challenge
+    const { user, token } = await authService.register(req.body);
+    setAuthCookie(res, token);
     return success(res, {
       statusCode: HTTP_STATUS.CREATED,
       message: MESSAGES.USER_REGISTERED,
-      data: { userId: user._id },
+      data: { token, user },
     });
   } catch (error) {
     return next(error);
@@ -22,15 +34,7 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const { user, token } = await authService.login(email, password);
-
-    // Set HTTP-only cookie as well as returning token in body (frontend compatibility)
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
+    setAuthCookie(res, token);
     return success(res, {
       message: MESSAGES.LOGIN_SUCCESS,
       data: { token, user },
@@ -40,9 +44,17 @@ const login = async (req, res, next) => {
   }
 };
 
-const logout = async (req, res) => {
-  res.clearCookie('token');
-  return success(res, { message: 'Logged out successfully' });
+const logout = async (req, res, next) => {
+  try {
+    // Increment tokenVersion → all tokens for this user are revoked
+    if (req.user?.userId) {
+      await authService.logout(req.user.userId);
+    }
+    res.clearCookie('token');
+    return success(res, { message: 'Logged out successfully' });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 const sendRegistrationOtp = async (req, res, next) => {
@@ -68,9 +80,14 @@ const sendPasswordResetOtp = async (req, res, next) => {
 const verifyOtp = async (req, res, next) => {
   try {
     const { email, otp } = req.body;
-    const isValid = await authService.verifyOtp(email, otp);
-    if (isValid) {
-      return success(res, { message: MESSAGES.OTP_VERIFIED });
+    // purpose=registration returns a verificationToken the client must include in register body
+    const purpose = req.query.purpose || null;
+    const result = await authService.verifyOtp(email, otp, purpose);
+    if (result.isValid) {
+      return success(res, {
+        message: MESSAGES.OTP_VERIFIED,
+        data: result.verificationToken ? { verificationToken: result.verificationToken } : {},
+      });
     }
     return next(new ApiError(ERROR_CODES.INVALID_OTP));
   } catch (error) {
@@ -91,14 +108,7 @@ const resetPassword = async (req, res, next) => {
 const googleLogin = async (req, res, next) => {
   try {
     const { user, token } = await authService.googleLogin(req.body);
-
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
+    setAuthCookie(res, token);
     return success(res, {
       message: 'Google login successful',
       data: { token, user },
@@ -118,4 +128,5 @@ module.exports = {
   verifyOtp,
   resetPassword,
 };
+
 

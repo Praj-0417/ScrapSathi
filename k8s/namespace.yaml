@@ -1,0 +1,9 @@
+# ─── ScrapSaathi Namespace ────────────────────────────────────────────────────
+# Apply this first: kubectl apply -f namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: scrapsaathi
+  labels:
+    app: scrapsaathi
+    managed-by: kubectl

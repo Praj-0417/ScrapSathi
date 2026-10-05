@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: scrapsaathi-backend
+    env: node
+    plan: free
+    region: singapore # or oregon / frankfurt
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MongoDB
+        sync: false # Set in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true # Generates a secure random 32+ char secret
+      - key: CLIENT_ORIGINS
+        sync: false # Example: https://scrap-sathi.vercel.app,http://localhost:5173

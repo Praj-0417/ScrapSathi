@@ -57,11 +57,13 @@ function BottomCTABanner() {
             <span>Book Free Doorstep Pickup</span>
             <ArrowRightIcon className="w-5 h-5" />
           </Link>
-          <a href="tel:+918800000000"
+          <a href="https://wa.me/919876543210?text=Hi%20ScrapSaathi%2C%20I%20want%20to%20schedule%20a%20pickup"
+            target="_blank"
+            rel="noopener noreferrer"
             className="px-8 py-4 font-bold rounded-2xl flex items-center gap-2.5 text-sm text-slate-300 transition-all hover:text-white hover:-translate-y-0.5"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
             <PhoneIcon className="w-4 h-4 text-emerald-400" />
-            Call: 1800-XXX-XXXX
+            WhatsApp Us
           </a>
         </div>
 

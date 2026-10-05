@@ -65,16 +65,17 @@ export default function SupportUs() {
   const activeCauseObj = causes.find((c) => c.key === selectedCause) || causes[0];
 
   const handleCustomAmountChange = (e) => {
-    const val = e.target.value;
-    setCustomAmount(val);
+    // Only allow positive integers (0-9) — reject minus signs, decimals, 'e'
+    const digitsOnly = e.target.value.replace(/[^0-9]/g, "");
+    setCustomAmount(digitsOnly);
 
-    if (val === "") {
+    if (digitsOnly === "") {
       setAmountError("");
       return;
     }
 
-    const num = Number(val);
-    if (isNaN(num) || num < 10) {
+    const num = Number(digitsOnly);
+    if (num < 10) {
       setAmountError("Minimum donation amount is ₹10");
     } else if (num > 1000000) {
       setAmountError("Maximum donation amount is ₹10,00,000 per transaction");
@@ -115,13 +116,13 @@ export default function SupportUs() {
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold backdrop-blur-md">
             <HeartIcon className="w-4 h-4 text-emerald-400 animate-pulse" />
-            <span>100% Tax Deductible under Section 80G</span>
+            <span>100% Goes Directly to Green Causes</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
             Support India's Green Transition 🌍
           </h1>
           <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
-            Every rupee donated directly funds urban tree planting, informal collector health coverage, and marine plastic interception. Receive instant 80G tax receipts upon verified payment.
+            Every rupee donated directly funds urban tree planting, informal collector health coverage, and marine plastic interception. Donate instantly via UPI — no sign-up, no fees.
           </p>
         </div>
 
@@ -185,7 +186,7 @@ export default function SupportUs() {
             </div>
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
               <ShieldCheckIcon className="w-4 h-4" />
-              <span>Instant 80G Certificate</span>
+              <span>Donate via UPI — Instant</span>
             </div>
           </div>
 
@@ -222,8 +223,17 @@ export default function SupportUs() {
                   type="number"
                   min="10"
                   max="1000000"
+                  step="1"
                   value={customAmount}
+                  onKeyDown={(e) => {
+                    if (["-", "+", "e", "E", "."].includes(e.key)) e.preventDefault();
+                  }}
                   onChange={handleCustomAmountChange}
+                  onBlur={(e) => {
+                    // Floor to integer on blur
+                    const floored = Math.floor(Number(e.target.value));
+                    if (!isNaN(floored) && floored > 0) setCustomAmount(String(floored));
+                  }}
                   placeholder="Or Enter Custom Amount (Min ₹10)"
                   className={`w-full p-4 bg-slate-950 border rounded-2xl text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all ${
                     amountError
@@ -263,16 +273,16 @@ export default function SupportUs() {
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
             <ShieldCheckIcon className="w-6 h-6 text-emerald-400 shrink-0" />
             <div>
-              <p className="font-bold text-white">80G Income Tax Exemption</p>
-              <p className="text-slate-500">Official verified receipt with Govt. Registration ID.</p>
+              <p className="font-bold text-white">Instant UPI Donation</p>
+              <p className="text-slate-500">Scan QR or copy UPI ID — paid in seconds via any UPI app.</p>
             </div>
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center gap-3">
             <GlobeAmericasIcon className="w-6 h-6 text-emerald-400 shrink-0" />
             <div>
-              <p className="font-bold text-white">Geo-Tagged Tree Certificates</p>
-              <p className="text-slate-500">Track exact latitude/longitude of your planted trees.</p>
+              <p className="font-bold text-white">Real Impact, Real Missions</p>
+              <p className="text-slate-500">Every rupee funds on-ground verified environmental projects.</p>
             </div>
           </div>
 

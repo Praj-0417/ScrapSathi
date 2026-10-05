@@ -4,15 +4,25 @@ const pickupRepository = require('../../repositories/pickup/pickupRepository');
 const emailAdapter = require('../../infrastructure/email/emailAdapter');
 const { ApiError } = require('../../utils/ApiError');
 const { ERROR_CODES, APP_CONSTANTS } = require('../../constants');
-const { PICKUP_REQUEST_STATUS } = require('../../enums');
 const logger = require('../../utils/logger');
 
 class CollectorService {
   /**
-   * List all pending pickups available for a collector to accept.
+   * List pending pickups available for a collector, optionally filtered by proximity (Caveat #9).
    */
-  async listAvailablePickups({ page = APP_CONSTANTS.PAGINATION.DEFAULT_PAGE, limit = APP_CONSTANTS.PAGINATION.DEFAULT_LIMIT } = {}) {
-    return pickupRepository.findPending({ page, limit });
+  async listAvailablePickups({ page = APP_CONSTANTS.PAGINATION.DEFAULT_PAGE, limit = APP_CONSTANTS.PAGINATION.DEFAULT_LIMIT, longitude, latitude, radius } = {}) {
+    return pickupRepository.findPending({ page, limit, longitude, latitude, maxDistanceKm: radius });
+  }
+
+  /**
+   * Update live GPS telemetry for an active assigned pickup (Caveat #10).
+   */
+  async updateLocation(collectorId, pickupId, locationData) {
+    const updated = await pickupRepository.updateLiveLocation(pickupId, collectorId, locationData);
+    if (!updated) {
+      throw new ApiError(ERROR_CODES.TRACKING_NOT_ALLOWED);
+    }
+    return updated;
   }
 
   /**
@@ -46,40 +56,34 @@ class CollectorService {
   }
 
   /**
-   * Collector cancels an accepted pickup — resets it to pending.
+   * Collector releases an accepted pickup — resets it to pending.
+   * Uses atomicRelease: conditional on {_id, status=ACCEPTED, wasteCollector=collectorId}.
+   * The wasteCollector field is cleared atomically in the same operation.
    */
   async cancelPickup(collectorId, pickupId) {
-    const pickup = await pickupRepository.findById(pickupId);
-    if (!pickup) throw new ApiError(ERROR_CODES.NOT_FOUND);
+    const updated = await pickupRepository.atomicRelease(pickupId, collectorId);
 
-    if ((pickup.wasteCollector?._id || pickup.wasteCollector)?.toString() !== collectorId) {
-      throw new ApiError(ERROR_CODES.FORBIDDEN);
+    if (!updated) {
+      // Either not found, not owned by this collector, or not in ACCEPTED state
+      throw new ApiError(ERROR_CODES.PICKUP_INVALID_TRANSITION);
     }
 
-    if (pickup.status !== PICKUP_REQUEST_STATUS.ACCEPTED) {
-      throw new ApiError(ERROR_CODES.PICKUP_CANCEL_NOT_ACCEPTED);
-    }
-
-    // Reset to pending so another collector can pick it up
-    return pickupRepository.updateStatus(pickupId, PICKUP_REQUEST_STATUS.PENDING, collectorId, 'Cancelled by collector');
+    return updated;
   }
 
   /**
    * Mark a pickup as completed. Only the assigned collector may do this.
+   * Uses atomicComplete: conditional on {_id, status=ACCEPTED, wasteCollector=collectorId}.
    */
-  async completePickup(collectorId, pickupId) {
-    const pickup = await pickupRepository.findById(pickupId);
-    if (!pickup) throw new ApiError(ERROR_CODES.NOT_FOUND);
+  async completePickup(collectorId, pickupId, extraData = {}) {
+    const updated = await pickupRepository.atomicComplete(pickupId, collectorId, extraData);
 
-    if ((pickup.wasteCollector?._id || pickup.wasteCollector)?.toString() !== collectorId) {
-      throw new ApiError(ERROR_CODES.FORBIDDEN);
+    if (!updated) {
+      // Either not found, not owned by this collector, or not in ACCEPTED state
+      throw new ApiError(ERROR_CODES.PICKUP_INVALID_TRANSITION);
     }
 
-    if (pickup.status !== PICKUP_REQUEST_STATUS.ACCEPTED) {
-      throw new ApiError(ERROR_CODES.PICKUP_COMPLETE_NOT_ACCEPTED);
-    }
-
-    return pickupRepository.updateStatus(pickupId, PICKUP_REQUEST_STATUS.COMPLETED, collectorId, 'Completed by collector');
+    return updated;
   }
 
   /**

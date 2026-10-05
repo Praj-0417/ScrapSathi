@@ -31,6 +31,30 @@ const statusEventSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const quoteLineSchema = new mongoose.Schema(
+  {
+    wasteType:  { type: String, required: true },
+    subcategory: { type: String },
+    quantity:   { type: Number, required: true },
+    unit:       { type: String, default: 'kg' },
+    unitRate:   { type: Number, required: true }, // ₹ per unit at time of booking
+    lineTotal:  { type: Number, required: true },
+  },
+  { _id: false },
+);
+
+const settlementSchema = new mongoose.Schema(
+  {
+    finalWeight:     { type: Number },               // kg as measured on site
+    evidenceUrls:    [{ type: String }],             // Cloudinary URLs for evidence photos
+    adjustmentReason:{ type: String, maxlength: 500 },
+    settledAmount:   { type: Number },
+    settledAt:       { type: Date },
+    settledBy:       { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  },
+  { _id: false },
+);
+
 const pickupRequestSchema = new mongoose.Schema(
   {
     userId: {
@@ -52,11 +76,22 @@ const pickupRequestSchema = new mongoose.Schema(
         message: 'At least one waste detail is required',
       },
     },
-    imageUrl: { type: String },
-    imagePublicId: { type: String },
-    address: { type: String, required: true, trim: true },
-    scheduledDate: { type: Date },
+    // Server-calculated quote snapshot — immutable after creation
+    quote: {
+      items:            [quoteLineSchema],
+      city:             { type: String },
+      currency:         { type: String, default: 'INR' },
+      totalEstimate:    { type: Number },      // Sum of all line totals
+      rateSnapshotDate: { type: Date },        // When rates were captured
+    },
+    imageUrl:        { type: String },
+    imagePublicId:   { type: String },
+    address:         { type: String, required: true, trim: true },
+    scheduledDate:   { type: Date },
     preferredTimeSlot: { type: String, required: true, trim: true },
+    customerNotes:   { type: String, maxlength: 1000, trim: true },
+    collectorNotes:  { type: String, maxlength: 1000, trim: true },
+    settlement:      settlementSchema,
     status: {
       type: String,
       enum: Object.values(PICKUP_REQUEST_STATUS),
@@ -70,6 +105,13 @@ const pickupRequestSchema = new mongoose.Schema(
         enum: Object.values(LOCATION_TYPES),
       },
       coordinates: [Number], // [longitude, latitude]
+    },
+    // Authenticated live tracking telemetry from assigned collector (Caveat #10)
+    liveTracking: {
+      coordinates: [Number], // [longitude, latitude]
+      heading:     { type: Number },
+      speed:       { type: Number },
+      updatedAt:   { type: Date },
     },
   },
   { timestamps: true },

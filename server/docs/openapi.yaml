@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: ScrapSaathi Core API
+  version: 1.0.0
+  description: >
+    Production-grade REST API contract for the ScrapSaathi doorstep scrap recycling
+    marketplace. Implements secure role-based authorization, OTP challenge tokens,
+    server-authoritative pricing quote snapshots, atomic lifecycle state machines,
+    and authenticated collector GPS telemetry.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local Development Server (v1)
+  - url: http://localhost:8000/api
+    description: Local Development Server (Canonical Prefix)
+  - url: https://sbt-1.onrender.com/api/v1
+    description: Production Cloud API
+
+paths:
+  /auth/register:
+    post:
+      summary: Register user with verified OTP challenge
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, phone, password, termsAccepted, verificationToken]
+              properties:
+                name:
+                  type: string
+                  example: Jane Doe
+                email:
+                  type: string
+                  format: email
+                  example: jane@example.com
+                phone:
+                  type: string
+                  example: "9876543210"
+                password:
+                  type: string
+                  format: password
+                  example: StrongPassword123!
+                userType:
+                  type: string
+                  enum: [individual, organization, recycle-company, waste-collector]
+                  default: individual
+                termsAccepted:
+                  type: boolean
+                  example: true
+                verificationToken:
+                  type: string
+                  description: Short-lived JWT signed by verifyOtp proving email ownership.
+      responses:
+        '201':
+          description: User registered successfully and session established.
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: token=jwt...; HttpOnly; SameSite=Lax
+        '400':
+          description: OTP not verified, email taken, or invalid input.
+
+  /auth/login:
+    post:
+      summary: Authenticate user credentials
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful. Sets httpOnly cookie and returns token in payload.
+
+  /auth/google:
+    post:
+      summary: Cryptographically verified Google OAuth sign-in
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential:
+                  type: string
+                  description: Google ID token verified against Google public keys and audience.
+      responses:
+        '200':
+          description: Google authentication successful.
+
+  /auth/logout:
+    post:
+      summary: Revoke session across devices
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        '200':
+          description: Token version incremented and session cookie cleared.
+
+  /pickups:
+    post:
+      summary: Create doorstep pickup request with server quote snapshot
+      tags: [Pickups]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [address, preferredTimeSlot]
+              properties:
+                wasteDetails:
+                  type: string
+                  description: JSON array of items or individual waste fields.
+                address:
+                  type: string
+                preferredTimeSlot:
+                  type: string
+                customerNotes:
+                  type: string
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Pickup created with server quote snapshot.
+
+  /pickups/{id}/tracking:
+    get:
+      summary: Get live collector GPS telemetry
+      tags: [Pickups, Tracking]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Telemetry data returned (coordinates, speed, heading, isStale flag).
+
+  /collector/pickups/{id}/location:
+    post:
+      summary: Push live collector GPS location (assigned collector only)
+      tags: [Collector, Tracking]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [latitude, longitude]
+              properties:
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                heading:
+                  type: number
+                speed:
+                  type: number
+      responses:
+        '200':
+          description: Telemetry stored.
+
+  /rates:
+    get:
+      summary: Get active rate board by city
+      tags: [Scrap Rates]
+      parameters:
+        - name: city
+          in: query
+          schema:
+            type: string
+            default: delhi-ncr
+      responses:
+        '200':
+          description: Categories, items, and city-effective prices.
+
+  /geocode/serviceable:
+    get:
+      summary: Verify if geographic coordinates fall within operating hubs
+      tags: [Geocoding]
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lon
+          in: query
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Serviceability boolean and nearest active hub.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: token

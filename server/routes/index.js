@@ -12,6 +12,7 @@ const adminRoutes      = require('./admin/adminRoutes');
 const donationsRoutes  = require('./donation/donationRoutes');
 const rateRoutes       = require('./rates/rateRoutes');
 const geocodeRoutes    = require('./geocode/geocodeRoutes');
+const contactRoutes    = require('./contact/contactRoutes');
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ router.get('/health', (_req, res) =>
 
 // ─── API Routes ──────────────────────────────────────────────────────────────
 router.use('/auth',       authRoutes);
+router.use('/otp',        authRoutes);
 router.use('/users',      usersRoutes);
 router.use('/pickups',    pickupsRoutes);
 router.use('/collector',  collectorsRoutes);
@@ -32,5 +34,6 @@ router.use('/admin',      adminRoutes);
 router.use('/donations',  donationsRoutes);
 router.use('/rates',      rateRoutes);
 router.use('/geocode',    geocodeRoutes);
+router.use('/contact',    contactRoutes);
 
 module.exports = router;

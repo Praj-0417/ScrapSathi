@@ -30,6 +30,8 @@ import FloatingChatWidget from "./pages/FloatingChatWidget";
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import Jobs from './pages/Jobs';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Terms from './pages/Terms';
 
 function App() {
  
@@ -62,19 +64,23 @@ function App() {
           <Route path="/forgotPassword" element={<ForgotPassword />} />
           <Route path="/updatePassword" element={<UpdatePassword />} />
           <Route path="/learning" element={<LearningCentre />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/terms-of-service" element={<Terms />} />
 
-          {/* Protected Routes */}
-          <Route path="/individual-dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+          {/* Protected Routes with role guards (Caveat #5) */}
+          <Route path="/individual-dashboard" element={<ProtectedRoute allowedUserTypes={['individual']}><UserDashboard /></ProtectedRoute>} />
           <Route path="/sellWaste" element={<ProtectedRoute><SellWaste /></ProtectedRoute>} />
           <Route path="/donate" element={<ProtectedRoute><SupportUs /></ProtectedRoute>} />
           <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfileView /></ProtectedRoute>} />
           <Route path="/editProfile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
           <Route path="/AdvancedDashboard" element={<ProtectedRoute><AdvancedDashboard /></ProtectedRoute>} />
-          <Route path="/organization-dashboard" element={<ProtectedRoute><BigOrganizationDashboard /></ProtectedRoute>} />
-          <Route path="/recycle-company-dashboard" element={<ProtectedRoute><RecycleCompanyDashboard /></ProtectedRoute>} />
-          <Route path="/collector-dashboard" element={<ProtectedRoute><WasteCollectorDashboard /></ProtectedRoute>} />
-          <Route path="/collector-requests" element={<ProtectedRoute><WasteCollectorRequests /></ProtectedRoute>} />
+          <Route path="/organization-dashboard" element={<ProtectedRoute allowedUserTypes={['organization']}><BigOrganizationDashboard /></ProtectedRoute>} />
+          <Route path="/recycle-company-dashboard" element={<ProtectedRoute allowedUserTypes={['recycle-company']}><RecycleCompanyDashboard /></ProtectedRoute>} />
+          <Route path="/collector-dashboard" element={<ProtectedRoute allowedUserTypes={['waste-collector']}><WasteCollectorDashboard /></ProtectedRoute>} />
+          <Route path="/collector-requests" element={<ProtectedRoute allowedUserTypes={['waste-collector']}><WasteCollectorRequests /></ProtectedRoute>} />
 
           <Route path="*" element={<Error />} />
         </Routes>

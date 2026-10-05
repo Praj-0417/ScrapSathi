@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { SCRAP_CATEGORIES, CITIES } from "../data/scrapRatesData";
 import { api } from "../utils/api";
 import { toast } from "react-toastify";
+import { useLogin } from "../components/LoginContext";
 import {
   MagnifyingGlassIcon,
   ShoppingBagIcon,
@@ -23,6 +24,9 @@ import {
 
 export default function ScrapRates() {
   const navigate = useNavigate();
+  const { user, loggedIn } = useLogin();
+  const isAdmin = loggedIn && (user?.role === "admin" || user?.role === "superAdmin" || user?.userType === "admin");
+
   const [selectedCity, setSelectedCity] = useState("delhi-ncr");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,14 +140,20 @@ export default function ScrapRates() {
   }, [calculatorBasket]);
 
   const handleProceedToSell = () => {
-    const itemSummary = Object.values(calculatorBasket)
+    const itemsList = Object.values(calculatorBasket);
+    const itemSummary = itemsList
       .map((item) => `${item.qty} ${item.unit} ${item.name}`)
       .join(", ");
 
+    if (itemsList.length > 0) {
+      // Store full structured basket and city so SellWaste preserves exact items, weights and prices
+      sessionStorage.setItem("scrapsaathi_selected_basket", JSON.stringify(calculatorBasket));
+      sessionStorage.setItem("scrapsaathi_selected_city", selectedCity);
+    }
     if (itemSummary) {
       sessionStorage.setItem("scrapsaathi_preselected_items", itemSummary);
     }
-    navigate("/sellWaste");
+    navigate("/sellWaste", { state: { basket: calculatorBasket, city: selectedCity } });
   };
 
   // Open Edit Modal
@@ -153,9 +163,15 @@ export default function ScrapRates() {
     setEditCity("all");
   };
 
-  // Save Rate to Backend MongoDB
+  // Save Rate to Backend MongoDB (Admin Only)
   const handleSaveRate = async (e) => {
     e.preventDefault();
+    if (!isAdmin) {
+      toast.error("Unauthorized: Only administrators can modify scrap rates.");
+      setEditingItem(null);
+      return;
+    }
+
     const numPrice = parseFloat(editPrice);
     if (isNaN(numPrice) || numPrice < 0) {
       toast.error("Please enter a valid non-negative rate");
@@ -391,14 +407,16 @@ export default function ScrapRates() {
                             <span className="text-base font-black text-emerald-400 shrink-0">
                               ₹{currentPrice}/{item.unit}
                             </span>
-                            {/* Live Quick Edit Rate Button */}
-                            <button
-                              onClick={() => handleOpenEditModal(item)}
-                              title="Update live price in database"
-                              className="opacity-40 group-hover:opacity-100 hover:text-emerald-400 text-slate-400 transition-opacity p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
-                            >
-                              <PencilSquareIcon className="w-3.5 h-3.5" />
-                            </button>
+                            {/* Live Quick Edit Rate Button (Admin Only) */}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleOpenEditModal(item)}
+                                title="Update live price in database (Admin Only)"
+                                className="opacity-60 hover:opacity-100 hover:text-emerald-400 text-slate-400 transition-opacity p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+                              >
+                                <PencilSquareIcon className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
                         <p className="text-xs text-slate-400 line-clamp-2">{item.description}</p>
@@ -451,8 +469,8 @@ export default function ScrapRates() {
           </div>
         )}
 
-        {/* Live Rate Editor Modal */}
-        {editingItem && (
+        {/* Live Rate Editor Modal (Admin Only) */}
+        {isAdmin && editingItem && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
             <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-5">
               <div className="flex items-center justify-between border-b border-slate-800 pb-3">

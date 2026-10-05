@@ -23,6 +23,9 @@ const ERROR_CODES = Object.freeze({
   INVALID_OTP: Object.freeze({ statusCode: HTTP_STATUS.BAD_REQUEST, message: 'Invalid OTP' }),
   OTP_SEND_FAILED: Object.freeze({ statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: 'Failed to send OTP' }),
   OTP_EXPIRED: Object.freeze({ statusCode: HTTP_STATUS.BAD_REQUEST, message: 'OTP has expired' }),
+  OTP_NOT_VERIFIED: Object.freeze({ statusCode: HTTP_STATUS.BAD_REQUEST, message: 'Email must be verified with OTP before registration' }),
+  GOOGLE_AUTH_FAILED: Object.freeze({ statusCode: HTTP_STATUS.UNAUTHORIZED, message: 'Google authentication failed. Invalid or expired credential.' }),
+  TOKEN_REVOKED: Object.freeze({ statusCode: HTTP_STATUS.UNAUTHORIZED, message: 'Session has been revoked. Please log in again.' }),
 
   // Validation Errors
   VALIDATION_ERROR: Object.freeze({ statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, message: 'Validation Error' }),
@@ -33,7 +36,12 @@ const ERROR_CODES = Object.freeze({
   PICKUP_INVALID_CANCEL: Object.freeze({ statusCode: HTTP_STATUS.BAD_REQUEST, message: 'Cannot cancel this pickup. It may not exist, not belong to you, or already be completed.' }),
   PICKUP_CANCEL_NOT_ACCEPTED: Object.freeze({ statusCode: HTTP_STATUS.BAD_REQUEST, message: 'You can only cancel pickups that are in accepted state.' }),
   PICKUP_COMPLETE_NOT_ACCEPTED: Object.freeze({ statusCode: HTTP_STATUS.BAD_REQUEST, message: 'Pickup must be in accepted state before marking as completed.' }),
+  PICKUP_INVALID_TRANSITION: Object.freeze({ statusCode: HTTP_STATUS.CONFLICT, message: 'Invalid state transition or concurrent modification detected.' }),
   IMAGE_UPLOAD_FAILED: Object.freeze({ statusCode: HTTP_STATUS.BAD_REQUEST, message: 'Image upload failed' }),
+
+  // Tracking
+  TRACKING_NOT_ALLOWED: Object.freeze({ statusCode: HTTP_STATUS.FORBIDDEN, message: 'You are not authorized to access tracking for this pickup.' }),
+  TRACKING_NOT_FOUND: Object.freeze({ statusCode: HTTP_STATUS.NOT_FOUND, message: 'No live tracking data found for this pickup.' }),
 });
 
 module.exports = ERROR_CODES;

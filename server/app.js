@@ -56,6 +56,7 @@ app.get('/health', (_req, res) => {
 app.use('/api', apiRateLimit);
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+// Mount canonical /api/v1 and alias /api to resolve contract prefix mismatch (Caveat #19)
 app.use('/api/v1', apiV1Route);
 app.use('/api', apiV1Route);
 

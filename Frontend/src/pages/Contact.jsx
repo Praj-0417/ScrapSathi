@@ -135,7 +135,7 @@ export default function Contact() {
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <h2 className="text-xl font-black text-white">Send Us a Direct Message</h2>
               <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                Avg Response: &lt; 2 Hours
+                Avg Response: Under 2 Hours
               </span>
             </div>
 
@@ -295,8 +295,8 @@ export default function Contact() {
                 <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
                   <PhoneIcon className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-white">Toll-Free Customer Care</p>
-                    <p className="text-slate-400 font-mono mt-0.5">+91 1800-SCRAP-SATHI</p>
+                    <p className="font-bold text-white">WhatsApp Support</p>
+                    <p className="text-slate-400 font-mono mt-0.5">+91 98765 43210</p>
                     <p className="text-[10px] text-emerald-400 font-semibold">Mon - Sun: 8:00 AM - 9:00 PM</p>
                   </div>
                 </div>
@@ -315,7 +315,7 @@ export default function Contact() {
                   <div>
                     <p className="font-bold text-white">Headquarters & Tech Center</p>
                     <p className="text-slate-400 mt-0.5 leading-relaxed">
-                      ScrapSaathi Eco Tower, Cyber City, Phase III, Gurugram, NCR, 122002
+                      Delhi NCR, Bengaluru — Doorstep pickup across all zones
                     </p>
                   </div>
                 </div>

@@ -1,0 +1,109 @@
+# ─── ScrapSaathi Backend — Kubernetes Deployment ──────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrapsaathi-backend
+  namespace: scrapsaathi
+  labels:
+    app: scrapsaathi
+    component: backend
+    version: "1.0"
+spec:
+  replicas: 2                      # Run 2 pods for high availability
+  selector:
+    matchLabels:
+      app: scrapsaathi
+      component: backend
+  strategy:
+    type: RollingUpdate            # Zero-downtime deploys
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: scrapsaathi
+        component: backend
+    spec:
+      # Run as non-root (matches Dockerfile USER)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: backend
+          image: scrapsaathi-backend:latest   # Replace with your registry image
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          # Environment from ConfigMap + Secret
+          envFrom:
+            - configMapRef:
+                name: scrapsaathi-backend-config
+            - secretRef:
+                name: scrapsaathi-backend-secret
+          # Liveness: restart pod if app is hung
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+          # Readiness: only send traffic when app is ready
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          # Resource limits — prevent runaway memory usage
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+      restartPolicy: Always
+
+---
+# ─── Backend Service ───────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: scrapsaathi-backend-svc
+  namespace: scrapsaathi
+  labels:
+    app: scrapsaathi
+    component: backend
+spec:
+  selector:
+    app: scrapsaathi
+    component: backend
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      protocol: TCP
+  type: ClusterIP                  # Internal only; exposed via Ingress
+
+---
+# ─── Backend ConfigMap (non-sensitive config) ──────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scrapsaathi-backend-config
+  namespace: scrapsaathi
+data:
+  NODE_ENV: "production"
+  PORT: "8000"
+  JWT_EXPIRES_IN: "24h"
+  EMAIL_FROM_NAME: "ScrapSaathi Support"
+  CLIENT_ORIGINS: "https://scrapsaathi.vercel.app,https://scrap-sathi.vercel.app"
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX: "100"
+  AUTH_RATE_LIMIT_MAX: "10"
+  OTP_RATE_LIMIT_MAX: "5"

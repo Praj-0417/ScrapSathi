@@ -19,6 +19,7 @@ router.post(
 
 router.get('/',             protect, pickupController.listMyPickups);
 router.get('/:id',          protect, pickupController.getOne);
+router.get('/:id/tracking', protect, pickupController.getTracking);
 router.patch('/:id/cancel', protect, validate(cancelPickupSchema), pickupController.cancel);
 
 module.exports = router;

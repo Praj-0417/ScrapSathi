@@ -46,25 +46,19 @@ api.interceptors.response.use(
     const { response } = error;
 
     if (response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error('Response Error:', response.data);
-      toast.error(response.data.message || 'An error occurred');
+      console.error('Response Error:', response.status, response.data?.message);
 
       if (response.status === 401) {
-        // Handle unauthorized access, e.g., redirect to login
         localStorage.removeItem('token');
-        // You might want to redirect the user to the login page here
-        // window.location.href = '/login';
+        // Redirect to login only if not already there
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
       }
     } else if (error.request) {
-      // The request was made but no response was received
-      console.error('Request Error:', error.request);
-      toast.error('No response from server. Please check your network connection.');
+      console.error('Request Error: No response received', error.request);
     } else {
-      // Something happened in setting up the request that triggered an Error
       console.error('Error:', error.message);
-      toast.error('An unexpected error occurred.');
     }
 
     return Promise.reject(error);

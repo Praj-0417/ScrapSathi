@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   Bars3Icon,
@@ -21,7 +21,8 @@ const NAV_LINKS = [
 ];
 
 function getDashboardPath(user) {
-  if (user?.userType === "waste-collector") return "/waste-collector-dashboard";
+  if (user?.role === "admin" || user?.userType === "admin" || user?.userType === "superAdmin") return "/AdvancedDashboard";
+  if (user?.userType === "waste-collector" || user?.userType === "wasteCollector") return "/collector-dashboard";
   if (user?.userType === "big-organization") return "/organization-dashboard";
   if (user?.userType === "recycle-company") return "/recycle-company-dashboard";
   return "/individual-dashboard";
@@ -33,12 +34,26 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
+  const userMenuRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 24);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Close menus on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    };
+    if (userMenuOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [userMenuOpen]);
 
   // Close mobile menu on navigation
   useEffect(() => { setIsOpen(false); setUserMenuOpen(false); }, [location.pathname]);
@@ -116,7 +131,7 @@ export default function Navbar() {
           {/* ── Desktop Right CTA ── */}
           <div className="hidden lg:flex items-center gap-2.5">
             {loggedIn ? (
-              <div className="relative">
+              <div ref={userMenuRef} className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all hover:bg-white/5 text-slate-300 hover:text-white"
@@ -231,17 +246,32 @@ export default function Navbar() {
               </Link>
 
               {loggedIn ? (
-                <div className="flex items-center justify-between px-4 py-2.5 rounded-xl"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                  <span className="text-xs font-bold text-slate-400">
-                    Hi, <span className="text-white">{user?.name?.split(" ")[0]}</span>
-                  </span>
-                  <button
-                    onClick={() => { logout(); setIsOpen(false); }}
-                    className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors"
+                <div className="space-y-2">
+                  <Link
+                    to={getDashboardPath(user)}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 transition-all hover:bg-emerald-500/20"
                   >
-                    Logout
-                  </button>
+                    <span className="flex items-center gap-2">
+                      <UserCircleIcon className="w-5 h-5" />
+                      My Dashboard ({user?.name?.split(" ")[0]})
+                    </span>
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      {user?.role || "user"}
+                    </span>
+                  </Link>
+                  <div className="flex items-center justify-between px-4 py-2 rounded-xl"
+                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    <span className="text-xs text-slate-400 truncate max-w-[200px]">
+                      {user?.email}
+                    </span>
+                    <button
+                      onClick={() => { logout(); setIsOpen(false); }}
+                      className="text-xs font-bold text-rose-400 hover:text-rose-300 transition-colors cursor-pointer"
+                    >
+                      Logout
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <Link
