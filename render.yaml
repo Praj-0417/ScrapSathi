@@ -21,6 +21,8 @@ services:
         generateValue: true # Render generates a secure random 32+ char key
       - key: CLIENT_ORIGINS
         sync: false # e.g. https://scrapsaathi-frontend.onrender.com,https://your-app.vercel.app
+      - key: GOOGLE_CLIENT_ID
+        value: 89870125852-ljoj152666esp5je2dhkavk2gjd19aff.apps.googleusercontent.com
 
   # ─── Frontend React/Vite Static Web Service ───────────────────────────────────
   - type: web
@@ -36,3 +38,6 @@ services:
     envVars:
       - key: VITE_API_BASE_URL
         sync: false # Enter https://scrapsaathi-backend.onrender.com/api
+      - key: VITE_GOOGLE_CLIENT_ID
+        value: 89870125852-ljoj152666esp5je2dhkavk2gjd19aff.apps.googleusercontent.com
+
