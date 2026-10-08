@@ -1,9 +1,10 @@
 services:
+  # ─── Backend Express API Service ──────────────────────────────────────────────
   - type: web
     name: scrapsaathi-backend
     env: node
     plan: free
-    region: singapore # or oregon / frankfurt
+    region: singapore
     rootDir: server
     buildCommand: npm install
     startCommand: npm start
@@ -15,8 +16,28 @@ services:
       - key: PORT
         value: 10000
       - key: MongoDB
-        sync: false # Set in Render dashboard
+        sync: false # Set your MongoDB Atlas connection string in Render Dashboard
       - key: JWT_SECRET
-        generateValue: true # Generates a secure random 32+ char secret
+        generateValue: true # Render generates a secure random 32+ char key
       - key: CLIENT_ORIGINS
-        sync: false # Example: https://scrap-sathi.vercel.app,http://localhost:5173
+        sync: false # e.g. https://scrapsaathi-frontend.onrender.com,https://your-app.vercel.app
+
+  # ─── Frontend React/Vite Static Web Service ───────────────────────────────────
+  - type: web
+    name: scrapsaathi-frontend
+    env: static
+    plan: free
+    region: singapore
+    rootDir: Frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: scrapsaathi-backend
+          envVarKey: RENDER_EXTERNAL_URL

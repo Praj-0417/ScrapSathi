@@ -7,10 +7,11 @@ const { HTTP_STATUS, ERROR_CODES, MESSAGES } = require('../../constants');
 
 // ── Cookie helper ─────────────────────────────────────────────────────────────
 const setAuthCookie = (res, token) => {
+  const isProd = process.env.NODE_ENV === 'production';
   res.cookie('token', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
+    secure: isProd,
+    sameSite: isProd ? 'None' : 'Lax',
     maxAge: 24 * 60 * 60 * 1000,
   });
 };
@@ -50,7 +51,12 @@ const logout = async (req, res, next) => {
     if (req.user?.userId) {
       await authService.logout(req.user.userId);
     }
-    res.clearCookie('token');
+    const isProd = process.env.NODE_ENV === 'production';
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'None' : 'Lax',
+    });
     return success(res, { message: 'Logged out successfully' });
   } catch (error) {
     return next(error);

@@ -14,7 +14,12 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    return callback(new Error('Origin is not allowed by CORS'));
+    // Automatically permit Vercel and Render deployment URLs
+    if (origin.endsWith('.vercel.app') || origin.endsWith('.onrender.com')) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origin ${origin} is not allowed by CORS`));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
