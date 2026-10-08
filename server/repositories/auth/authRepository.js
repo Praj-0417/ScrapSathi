@@ -32,6 +32,10 @@ class AuthRepository {
     return User.findByIdAndUpdate(id, data, { new: true, runValidators: true });
   }
 
+  async incrementTokenVersion(userId) {
+    return User.findByIdAndUpdate(userId, { $inc: { tokenVersion: 1 } }, { new: true });
+  }
+
   /**
    * Create a user + their profile atomically (rollback on failure).
    */

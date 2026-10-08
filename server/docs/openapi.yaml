@@ -12,7 +12,7 @@ servers:
     description: Local Development Server (v1)
   - url: http://localhost:8000/api
     description: Local Development Server (Canonical Prefix)
-  - url: https://sbt-1.onrender.com/api/v1
+  - url: https://scrapsaathi-backend.onrender.com/api/v1
     description: Production Cloud API
 
 paths:

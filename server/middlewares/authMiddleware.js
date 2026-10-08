@@ -37,8 +37,10 @@ const protect = async (req, res, next) => {
     }
 
     // ── Token revocation via version check (Caveat #4) ───────────────────────
-    // logout() increments tokenVersion; any token issued before that is rejected.
-    if (typeof decoded.version === 'number' && decoded.version !== user.tokenVersion) {
+    // logout() increments tokenVersion; any token issued with an older version is rejected.
+    const dbTokenVersion = Number(user.tokenVersion) || 0;
+    const tokenVersion = Number(decoded.version) || 0;
+    if (tokenVersion < dbTokenVersion) {
       throw new ApiError(ERROR_CODES.TOKEN_REVOKED);
     }
 

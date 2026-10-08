@@ -9,7 +9,7 @@ const getBaseUrl = () => {
     return (
       import.meta.env.VITE_PROD_BASE_URL ||
       import.meta.env.VITE_FALLBACK_PROD_BASE_URL ||
-      'https://sbt-1.onrender.com/api'
+      'https://scrapsaathi-backend.onrender.com/api'
     );
   }
   return import.meta.env.VITE_DEV_BASE_URL || 'http://localhost:8000/api';
