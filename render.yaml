@@ -2,7 +2,7 @@ services:
   # ─── Backend Express API Service ──────────────────────────────────────────────
   - type: web
     name: scrapsaathi-backend
-    env: node
+    runtime: node
     plan: free
     region: singapore
     rootDir: server
@@ -22,11 +22,10 @@ services:
       - key: CLIENT_ORIGINS
         sync: false # e.g. https://scrapsaathi-frontend.onrender.com,https://your-app.vercel.app
 
-  # ─── Frontend React/Vite Static Web Service (Global CDN - No region) ──────────
+  # ─── Frontend React/Vite Static Web Service ───────────────────────────────────
   - type: web
     name: scrapsaathi-frontend
-    env: static
-    plan: free
+    runtime: static
     rootDir: Frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
