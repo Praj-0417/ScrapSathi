@@ -22,12 +22,11 @@ services:
       - key: CLIENT_ORIGINS
         sync: false # e.g. https://scrapsaathi-frontend.onrender.com,https://your-app.vercel.app
 
-  # ─── Frontend React/Vite Static Web Service ───────────────────────────────────
+  # ─── Frontend React/Vite Static Web Service (Global CDN - No region) ──────────
   - type: web
     name: scrapsaathi-frontend
     env: static
     plan: free
-    region: singapore
     rootDir: Frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
@@ -37,7 +36,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: scrapsaathi-backend
-          envVarKey: RENDER_EXTERNAL_URL
+        sync: false # Enter https://scrapsaathi-backend.onrender.com/api
