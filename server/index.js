@@ -7,11 +7,17 @@ const logger = require('./utils/logger');
 
 const startServer = async () => {
   try {
-    await connectDatabase();
-
+    // Start listening first so Render health checks (/health) pass immediately
     const server = app.listen(env.PORT, () => {
       logger.info('Server started', { port: env.PORT, environment: env.NODE_ENV });
     });
+
+    // Connect to MongoDB
+    try {
+      await connectDatabase();
+    } catch (dbError) {
+      logger.error('MongoDB initial connection error', { error: dbError.message });
+    }
 
     const shutdown = async (signal) => {
       logger.info('Shutdown signal received', { signal });

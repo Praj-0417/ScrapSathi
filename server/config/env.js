@@ -35,6 +35,8 @@ const envSchema = z.object({
   ADMIN_PASSWORD: z.string().optional(),
   ADMIN_NAME: z.string().optional(),
   ADMIN_PHONE: z.string().optional(),
+}).passthrough();
+
 // Normalize MongoDB URI from various cloud hosting conventions (MONGO_URI, MONGODB_URI, DATABASE_URL)
 process.env.MongoDB =
   process.env.MongoDB ||
