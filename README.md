@@ -1,139 +1,376 @@
-# ScrapSaathi — Distributed Microservices Platform ♻️
+# ScrapSaathi
 
-[![Microservices Architecture](https://img.shields.io/badge/Architecture-Microservices-6366f1?style=for-the-badge&logo=docker)](https://github.com/Praj-0417/ScrapSathi)
-[![React Vite](https://img.shields.io/badge/Frontend-React_18_+_Vite-61dafb?style=for-the-badge&logo=react)](https://vitejs.dev)
-[![Node.js Express](https://img.shields.io/badge/Backend-Node.js_Express-339933?style=for-the-badge&logo=node.js)](https://nodejs.org)
-[![FastAPI RAG](https://img.shields.io/badge/AI_Assistant-FastAPI_+_LangChain-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com)
-[![Docker Compose](https://img.shields.io/badge/Orchestration-Docker_Compose_+_K8s-2496ed?style=for-the-badge&logo=kubernetes)](https://kubernetes.io)
+## Overview
 
-An enterprise-grade, distributed marketplace platform connecting households, commercial waste generators, certified waste collectors, and recycling factories. Built with domain-driven microservices, an asynchronous event model, geospatial dispatching, real-time GPS telemetry, and a retrieval-augmented generation (RAG) sustainability assistant.
-
-> 💡 **Looking for the hosted single-instance deployment?**  
-> Check out the [`monolith`](https://github.com/Praj-0417/ScrapSathi/tree/monolith) branch or the standalone `ScrapSathi-Monolith` folder optimized for 1-click free-tier hosting on Render / Railway.
+ScrapSaathi is a distributed scrap-pickup marketplace connecting households and commercial waste generators with verified local scrap collectors and recycling facilities. Users schedule doorstep pickups with item specifications, photo uploads, and GPS coordinates, while viewing city-specific rate cards and tracking collectors in real time. The platform provides collectors with geospatial dispatch, atomic request claiming, and doorstep weighment settlement, supported by a RAG-powered recycling assistant.
 
 ---
 
-## 🏛️ System Architecture
+## Features
+
+- **Multi-Role Workflows**: Dedicated dashboards and role permissions for Individual Sellers, Waste Collectors, Bulk Organizations, and Admins.
+- **Geospatial Pickup Dispatch**: Schedule pickups with auto-calculated quotes; collectors discover nearby jobs via MongoDB `$near` 2dsphere indexing.
+- **Atomic State Transitions**: Anti-race condition acceptance (`REQUESTED` → `ASSIGNED` → `IN_PROGRESS` → `COMPLETED`) preventing duplicate claims.
+- **Live Collector GPS Tracking**: Real-time vehicle telemetry ingestion with dynamic distance and ETA calculation.
+- **Doorstep Weighment Settlement**: Record actual weights, digital/cash payouts, and dispute-proof evidence uploads.
+- **Authoritative Scrap Rates**: Dynamic pricing catalog across paper, metals, plastics, and e-waste with server-validated quotes.
+- **Eco-Donations**: Community green causes backed by verifiable provisional legal acknowledgements (`ACK-ECO-...`).
+- **AI RAG Assistant**: Natural language recycling guide powered by FastAPI, LangChain, and FAISS vector embeddings.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 18, Vite, TailwindCSS, React Router 7, Leaflet Maps, Axios |
+| **API Gateway** | Node.js, Express, `http-proxy-middleware`, Helmet, Express Rate Limit |
+| **Microservices** | Node.js (v20), Express 4, Mongoose 8, Zod, Multer, Bcrypt |
+| **AI / Chatbot** | Python 3.11, FastAPI, LangChain, FAISS Vector Store, Sentence Transformers |
+| **Database & Cache** | MongoDB (Atlas / 2dsphere indexing), Redis 7 (caching & rate-limiting) |
+| **Authentication** | JWT (Cookie/Bearer), `tokenVersion` session revocation, Google OAuth 2.0 |
+| **External Services** | Cloudinary, Nodemailer (SMTP), Together AI / Groq LLM, OpenStreetMap |
+| **DevOps / Orchestration** | Docker, Docker Compose, Kubernetes manifests (`k8s/`) |
+
+---
+
+## System Architecture
+
+### HLD Diagram
 
 ```mermaid
-graph TD
-    UserClient["🖥️ Client Browser (React + Vite SPA)"] -->|HTTP / REST| Gateway["🚪 API Gateway (Port 8000)<br/>Reverse Proxy • Rate Limiting • CORS"]
-
-    subgraph "Distributed Microservices Cluster"
-        Gateway -->|/api/v1/auth/*| AuthService["🔐 Auth Service (Port 8010)<br/>OTP Gate • Google OAuth • Token Revocation"]
-        Gateway -->|/api/v1/pickups/*<br/>/api/v1/collector/*| PickupService["🚚 Pickup & Telemetry Service (Port 8020)<br/>State Machine • Geospatial $near • GPS Streaming"]
-        Gateway -->|/api/v1/rates/*| RateService["📊 Rate & Pricing Service (Port 8030)<br/>Authoritative Catalogs • Dynamic Quotes"]
-        Gateway -->|/api/v1/donations/*<br/>/api/v1/contact/*| DonationService["💚 Donation & Settlement Service (Port 8040)<br/>Provisional Receipts • Doorstep Settlements"]
-        Gateway -->|/api/v1/chat/*| ChatbotService["🤖 Chatbot RAG Service (Port 8001)<br/>FastAPI • FAISS • LangChain • LLM"]
+flowchart TB
+    %% Client Layer
+    subgraph CLIENT["1. Client Layer (React 18 + Vite SPA)"]
+        direction TB
+        USER_ROLE["Users: Households • Businesses • Waste Collectors • Admins"]
+        UI_MODULES["ScrapSaathi Web Client<br/>(Sell Waste • Live GPS Map • Rate Cards • Donations • RAG Chat)"]
+        USER_ROLE --> UI_MODULES
     end
 
-    subgraph "Data & Persistence Layer"
-        AuthService --> MongoDB[("🍃 MongoDB Database")]
-        PickupService --> MongoDB
-        RateService --> MongoDB
-        DonationService --> MongoDB
-        Gateway -.-> Redis[("⚡ Redis Cache & Rate Limits")]
-        ChatbotService --> FAISS[("🧠 FAISS Vector Store")]
+    %% Ingress Gateway
+    subgraph INGRESS["2. Ingress & Routing (Port 8000)"]
+        GATEWAY["API Gateway (Express + Reverse Proxy)<br/>Helmet • Global Rate Limiting • CORS Credentials • Health Check (/health)"]
     end
+
+    %% API Endpoints Grouped
+    subgraph APIS["3. Grouped API Routes"]
+        direction TB
+        API_AUTH["Auth & Users<br/>POST /api/v1/auth/send-otp<br/>POST /api/v1/auth/verify-otp<br/>POST /api/v1/auth/register<br/>POST /api/v1/auth/login<br/>POST /api/v1/auth/google<br/>POST /api/v1/auth/logout"]
+        API_PICKUP["Pickups & Collector Dispatch<br/>POST /api/v1/pickups<br/>GET /api/v1/pickups<br/>GET /api/v1/pickups/:id/tracking<br/>GET /api/v1/collector/pickups<br/>PATCH /api/v1/collector/pickups/:id/accept<br/>POST /api/v1/collector/pickups/:id/location<br/>PATCH /api/v1/collector/pickups/:id/complete"]
+        API_RATES["Scrap Rates<br/>GET /api/v1/rates<br/>POST /api/v1/rates/calculate-quote"]
+        API_DONATE["Donations & Support<br/>POST /api/v1/donations<br/>GET /api/v1/donations/my<br/>POST /api/v1/contact"]
+        API_CHAT["AI Assistant<br/>POST /api/v1/chat (/ask)<br/>GET /health"]
+    end
+
+    %% Middleware
+    subgraph MW["4. Middleware Pipeline"]
+        direction TB
+        MW_AUTH["Auth Guard (JWT + tokenVersion Revocation)"]
+        MW_RATE["IP & Email Rate Limiter"]
+        MW_VAL["Zod Payload & Magic Byte Validator"]
+    end
+
+    %% Microservices Cluster
+    subgraph SERVICES["5. Microservices Cluster"]
+        direction TB
+        S_AUTH["Auth Service (:8010)<br/>OTP Challenge • Google ID Verification • Token State"]
+        S_PICKUP["Pickup & Telemetry Service (:8020)<br/>Geospatial $near Engine • Atomic State Transitions • GPS Streaming"]
+        S_RATE["Rate & Catalog Service (:8030)<br/>Authoritative Rate Cards • Quote Snapshot Engine"]
+        S_DONATE["Donation Service (:8040)<br/>Provisional Legal Receipts • Doorstep Settlements"]
+        S_CHAT["Chatbot Service (:8001)<br/>FastAPI • LangChain • Document Retriever"]
+    end
+
+    %% Persistence
+    subgraph DATA["6. Database & Persistence Layer"]
+        DB_USERS[("MongoDB: users • otps")]
+        DB_PICKUPS[("MongoDB: pickuprequests<br/>(2dsphere Index)")]
+        DB_RATES[("MongoDB: scraprates")]
+        DB_DONATIONS[("MongoDB: donations • contacts")]
+        V_STORE[("FAISS Vector Index")]
+        REDIS[("Redis Cache / PubSub")]
+    end
+
+    %% External Services
+    subgraph EXT["7. External Integrations"]
+        EXT_GOOGLE["Google OAuth API"]
+        EXT_SMTP["SMTP / Nodemailer"]
+        EXT_CLOUD["Cloudinary Storage"]
+        EXT_LLM["Together AI / Groq LLM"]
+        EXT_OSM["OpenStreetMap / Nominatim"]
+    end
+
+    %% Flow Connections
+    UI_MODULES -->|HTTP / REST| GATEWAY
+    GATEWAY --> API_AUTH
+    GATEWAY --> API_PICKUP
+    GATEWAY --> API_RATES
+    GATEWAY --> API_DONATE
+    GATEWAY --> API_CHAT
+
+    API_AUTH --> MW_RATE --> MW_VAL --> S_AUTH
+    API_PICKUP --> MW_AUTH --> MW_VAL --> S_PICKUP
+    API_RATES --> S_RATE
+    API_DONATE --> MW_AUTH --> S_DONATE
+    API_CHAT --> S_CHAT
+
+    S_AUTH --> DB_USERS
+    S_AUTH --> EXT_GOOGLE
+    S_AUTH --> EXT_SMTP
+
+    S_PICKUP --> DB_PICKUPS
+    S_PICKUP --> EXT_CLOUD
+    S_PICKUP --> EXT_OSM
+
+    S_RATE --> DB_RATES
+    S_DONATE --> DB_DONATIONS
+
+    S_CHAT --> V_STORE
+    S_CHAT --> EXT_LLM
+    GATEWAY -.-> REDIS
+```
+
+### Main Request Flow
+
+```text
+User Action
+  └──> Frontend (React + Vite)
+        └──> API Gateway (:8000) [CORS, Rate Limiting, Route Proxy]
+              └──> Auth / Validation Middleware [JWT verification, tokenVersion session check, Zod schema]
+                    └──> Microservice Controller & Service Logic [Port :8010-:8040 or :8001]
+                          └──> MongoDB Atlas / FAISS [Atomic updates, 2dsphere queries, vector search]
+                                └──> JSON Response via Gateway back to Client
+```
+
+1. The client sends an HTTP request to the unified API Gateway (`:8000`) with credentials (`httpOnly` cookie or Bearer token).
+2. The Gateway inspects headers, enforces rate limits, and reverse-proxies to the target domain microservice.
+3. Service middleware validates the JWT and verifies that `decoded.version === user.tokenVersion` to block revoked tokens.
+4. The service executes domain logic (atomic conditional updates, geospatial `$near` calculations, or quote snapshots).
+5. Data is committed to MongoDB, and formatted JSON returns to the client.
+
+---
+
+## API Reference
+
+### Authentication & Users (`services/auth-service` :8010)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/auth/send-otp` | Generates and sends a 6-digit OTP to the user's email |
+| `POST` | `/api/v1/auth/verify-otp` | Verifies OTP and returns a signed `verificationToken` |
+| `POST` | `/api/v1/auth/register` | Registers account (requires valid `verificationToken`) |
+| `POST` | `/api/v1/auth/login` | Authenticates credentials and sets `httpOnly` JWT cookie |
+| `POST` | `/api/v1/auth/google` | Verifies Google ID token and issues authenticated session |
+| `POST` | `/api/v1/auth/logout` | Revokes active session tokens across devices via `tokenVersion` |
+| `GET` | `/api/v1/auth/me` | Returns authenticated user profile and permissions |
+
+### Pickups & Collector Dispatch (`services/pickup-service` :8020)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/pickups` | Creates pickup request with items, address, coordinates, and photo |
+| `GET` | `/api/v1/pickups` | Retrieves current user's pickup history and statuses |
+| `GET` | `/api/v1/pickups/:id/tracking` | Returns live GPS coordinates, heading, and ETA of assigned collector |
+| `GET` | `/api/v1/collector/pickups` | Finds unassigned pickups near collector using `$near` 2dsphere |
+| `PATCH` | `/api/v1/collector/pickups/:id/accept` | Atomically claims a pickup request (`REQUESTED` → `ASSIGNED`) |
+| `POST` | `/api/v1/collector/pickups/:id/location` | Ingests real-time vehicle GPS telemetry from collector app |
+| `PATCH` | `/api/v1/collector/pickups/:id/complete` | Submits doorstep weighment, settlement amount, and photo evidence |
+
+### Scrap Rates & Pricing (`services/rate-service` :8030)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/v1/rates` | Fetches scrap rate cards filtered by category and city |
+| `POST` | `/api/v1/rates/calculate-quote` | Computes authoritative quote snapshot from line items and city rates |
+
+### Donations & Support (`services/donation-service` :8040)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/donations` | Records eco-donation and issues provisional receipt (`ACK-ECO-...`) |
+| `GET` | `/api/v1/donations/my` | Retrieves user donation contribution records |
+| `POST` | `/api/v1/contact` | Submits customer support and inquiry messages |
+
+### AI RAG Chatbot (`services/chatbot-service` :8001)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/chat` (`/ask`) | Submits user recycling query for vector retrieval and LLM response |
+| `GET` | `/health` | Health check for RAG pipeline and vector store readiness |
+
+---
+
+## Database
+
+ScrapSaathi uses **MongoDB** as its primary operational datastore with a `2dsphere` spatial index on pickup coordinates, alongside an in-memory **FAISS** vector database for AI knowledge retrieval.
+
+```mermaid
+erDiagram
+    USER ||--o{ PICKUP_REQUEST : "creates (customer)"
+    USER ||--o{ PICKUP_REQUEST : "fulfills (collector)"
+    USER ||--o{ DONATION : "contributes"
+    USER ||--o{ OTP : "receives"
+    SCRAP_RATE ||--o{ PICKUP_REQUEST : "quotes"
+
+    USER {
+        ObjectId _id PK
+        string email UK
+        string password
+        string role "individual | wasteCollector | bigOrganization | admin"
+        int tokenVersion "session revocation counter"
+    }
+
+    PICKUP_REQUEST {
+        ObjectId _id PK
+        ObjectId user FK
+        ObjectId wasteCollector FK
+        string status "REQUESTED | ASSIGNED | IN_PROGRESS | COMPLETED"
+        geojson location "2dsphere Point [lon, lat]"
+        object quote "snapshot items & totalEstimate"
+        object settlement "finalWeight, settledAmount, evidenceUrls"
+        object liveTracking "coordinates, heading, speed"
+    }
+
+    SCRAP_RATE {
+        ObjectId _id PK
+        string category "Paper | Metal | Plastic | E-Waste"
+        string itemName
+        number basePricePerKg
+        object cityOverrides
+    }
+
+    DONATION {
+        ObjectId _id PK
+        ObjectId donor FK
+        number amount
+        string cause
+        string certificateId "ACK-ECO-..."
+        string paymentStatus "pending | completed"
+    }
+
+    OTP {
+        ObjectId _id PK
+        string email
+        string otp
+        date expiresAt
+    }
 ```
 
 ---
 
-## 📦 Microservices Domain Matrix
+## Project Structure
 
-| Microservice | Port | Technology | Key Responsibilities |
-| :--- | :---: | :--- | :--- |
-| **API Gateway** | `8000` | Node.js, Express, `http-proxy-middleware`, Helmet | Single ingress point, path-based reverse proxying, client CORS, centralized token inspection, global IP rate-limiting. |
-| **Auth Service** | `8010` | Express, Mongoose, JWT, Nodemailer, Bcrypt | User lifecycle, multi-role RBAC, cryptographically verified OTP email gate, Google OAuth ID token validation, session revocation via `tokenVersion`. |
-| **Pickup & Telemetry** | `8020` | Express, Mongoose Geospatial, Multer | Atomic conditional state machine (`ASSIGNED`, `IN_PROGRESS`, `SETTLED`), MongoDB `$near` collector dispatching, live GPS telemetry streaming. |
-| **Rate & Pricing Catalog** | `8030` | Express, Mongoose | Authoritative rate cards, dynamic quote calculations, item categories, audit logs. |
-| **Donation & Settlement** | `8040` | Express, Mongoose, Zod | Transparent eco-donations, provisional legal acknowledgements (`ACK-ECO-...`), doorstep weighment & digital payment settlement records. |
-| **Chatbot RAG Assistant** | `8001` | FastAPI, Python 3.11, LangChain, FAISS | Natural language recycling queries, chunked vector retrieval, 30s streaming timeout resilience. |
-
----
-
-## 🚀 Key Engineering & Architecture Highlights
-
-### 1. High-Frequency Telemetry vs Read-Heavy Catalog Isolation
-- **The Problem:** Live waste-collector vehicle GPS pings occur every 5 seconds per active driver. In a monolithic database, high-frequency location writes lock collections and degrade throughput for read-heavy operations like customer scrap price queries.
-- **The Solution:** Decoupled `pickup-service` from `rate-service`. Telemetry writes scale independently without impacting user catalog browsing.
-
-### 2. Atomic State Machine & Anti-Race Condition Dispatch
-- Prevents double-assignment when two collectors attempt to accept the same pickup request concurrently.
-- Uses conditional atomic MongoDB operations:
-  ```javascript
-  const request = await PickupRequest.findOneAndUpdate(
-    { _id: id, status: 'REQUESTED' },
-    { $set: { status: 'ASSIGNED', wasteCollector: collectorId } },
-    { new: true }
-  );
-  if (!request) throw new ConflictError('Request has already been accepted by another collector');
-  ```
-
-### 3. Enterprise Auth Security & Instant Multi-Device Revocation
-- **OTP Registration Gate:** Requires a signed `verificationToken` from the OTP verification endpoint before account creation.
-- **Session Revocation:** Implements an incrementing `tokenVersion` on user records; logging out revokes all existing JWTs across all active sessions instantly.
-- **Payload Verification:** Real-time magic byte inspection (`FF D8 FF`, `89 50 4E 47`, `52 49 46 46`) prevents disguised executable uploads.
+```text
+ScrapSathi/
+├── docs/                 # OpenAPI 3.0 specification & architecture docs
+├── packages/
+│   └── shared/           # @scrapsathi/shared (ApiError, logger, token auth middleware)
+├── services/
+│   ├── api-gateway/      # Port 8000: Ingress reverse proxy & rate limiter
+│   ├── auth-service/     # Port 8010: Authentication, OTP verification, Google OAuth
+│   ├── pickup-service/   # Port 8020: Geospatial dispatch, GPS telemetry, state machine
+│   ├── rate-service/     # Port 8030: Scrap rate cards & quote calculation engine
+│   ├── donation-service/ # Port 8040: Eco-donations & provisional legal acknowledgements
+│   └── chatbot-service/  # Port 8001: FastAPI + LangChain + FAISS assistant
+├── Frontend/             # React 18 + Vite SPA client
+├── tests/                # Automated integration test suite (8/8 pass)
+├── k8s/                  # Kubernetes deployment manifests
+├── docker-compose.yml    # Full microservices stack orchestration with Redis
+├── package.json          # Root monorepo workspace configuration
+└── README.md             # System architecture & documentation
+```
 
 ---
 
-## 🛠️ Quick Start & Local Orchestration
+## Setup & Run
 
 ### Prerequisites
-- [Docker](https://www.docker.com) and Docker Compose installed.
-- [Node.js](https://nodejs.org) (v18+ or v20+) and [npm](https://www.npmjs.com).
 
-### 1. One-Click Stack Run (Docker Compose)
-Launch the entire microservices cluster + API gateway + Redis with one command:
+- **Node.js**: v18.x or v20.x
+- **Docker & Docker Compose**: (Recommended for running full stack)
+- **MongoDB**: MongoDB Atlas URI or local instance on `localhost:27017`
+
+### 1. Run with Docker Compose (Recommended)
+
+Builds and starts all 6 microservices, Redis, and the Frontend in a shared network:
+
 ```bash
-# Clone the repository
-git clone https://github.com/Praj-0417/ScrapSathi.git
-cd ScrapSathi
-
-# Launch all microservices
 docker compose up --build
 ```
-Once initialized:
-- **Web App (Frontend)**: `http://localhost:5173`
+
+- **Frontend Application**: `http://localhost:5173`
 - **API Gateway**: `http://localhost:8000`
 - **Gateway Health Check**: `http://localhost:8000/health`
-- **Interactive OpenAPI Spec**: `http://localhost:8000/docs`
-
----
 
 ### 2. Local Development (NPM Workspaces)
-To run microservices in concurrent development mode:
+
 ```bash
-# Install root workspace dependencies
+# 1. Install dependencies across all workspaces
 npm install
 
-# Start all microservices concurrently
+# 2. Run all microservices concurrently
 npm run dev
+
+# 3. In a separate terminal, start frontend dev server
+npm run dev:frontend
 ```
 
----
+### 3. Run Automated Tests
 
-## 🧪 Testing & Quality Assurance
+Executes the integration test suite validating auth gates, magic bytes, geospatial radius, and quote snapshots:
 
-Automated integration tests validate contract stability across auth gates, geospatial queries, and quote generation:
 ```bash
 npm test
 ```
 
 ---
 
-## 📜 Monolith Deployment Alternative
-For interview demos or cost-effective hosting on free cloud platforms (Render, Railway, Fly.io):
-```bash
-# Checkout the monolith branch
-git checkout monolith
+## Environment Variables
 
-# Refer to DEPLOYMENT.md for step-by-step instructions
+Configure these variable names in your root `.env` or container runtime (never commit actual secrets):
+
+```bash
+# Server & Database
+PORT=8000
+MongoDB=mongodb+srv://<user>:<password>@cluster.mongodb.net/scrapsathi
+NODE_ENV=production
+
+# Security & Authentication
+JWT_SECRET=your_jwt_secret_minimum_32_characters
+JWT_EXPIRES_IN=24h
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+
+# Email (OTP Service)
+PRIMARY_EMAIL=your_email@gmail.com
+PRIMARY_EMAIL_PASSWORD=your_app_specific_password
+
+# Cloud Storage
+CLOUDINARY_CLOUD_NAME=your_cloudinary_name
+CLOUDINARY_API_KEY=your_cloudinary_key
+CLOUDINARY_API_SECRET=your_cloudinary_secret
+
+# Chatbot AI
+TOGETHER_API_KEY=your_together_ai_api_key
+
+# Frontend
+VITE_DEV_BASE_URL=http://localhost:8000/api
+VITE_PROD_BASE_URL=http://localhost:8000/api
 ```
 
 ---
 
-## 👥 Contributors & Authors
-- **Pranav Raj** — Full Stack & Cloud Architect ([GitHub](https://github.com/Praj-0417))
-- **Aman Kumar** — Collaborator ([GitHub](https://github.com/amankum2004))
+## Future Improvements
 
+### Currently Implemented
+- Decoupled domain microservices with unified API Gateway reverse proxy.
+- Cryptographically verified OTP registration challenge gate and multi-device session revocation via `tokenVersion`.
+- Real-time waste collector vehicle GPS telemetry ingestion with distance/ETA calculation.
+- MongoDB `$near` 2dsphere spatial index for collector job discovery and atomic claim state machine.
+- Doorstep weighment recording and payment settlement with image magic-byte security checks.
+- Document-retrieval RAG chatbot with 30s timeout tolerance.
+
+### Planned Enhancements
+- **Message Broker Integration**: Introduce Apache Kafka or RabbitMQ for asynchronous event publishing (e.g. `pickup.created` -> `notification.send`).
+- **Distributed Caching**: Add Redis caching for high-throughput scrap rate catalog reads and geocoded addresses.
+- **WebSocket Gateway**: Upgrade collector GPS streaming from HTTP telemetry polling to bidirectional WebSocket connections.
+- **Payment Gateway Webhooks**: Replace provisional donation acknowledgements with automated Razorpay/Stripe webhook reconciliation.
