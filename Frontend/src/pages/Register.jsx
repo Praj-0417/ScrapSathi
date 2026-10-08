@@ -47,7 +47,7 @@ export default function Register() {
   const [customGoogleEmail, setCustomGoogleEmail] = useState("");
   const [customGoogleName, setCustomGoogleName] = useState("");
   const [enteredClientId, setEnteredClientId] = useState(
-    import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem("scrapsaathi_google_client_id") || "89870125852-ljoj152666esp5je2dhkavk2gjd19aff.apps.googleusercontent.com"
+    import.meta.env.VITE_GOOGLE_CLIENT_ID || localStorage.getItem("scrapsaathi_google_client_id") || ""
   );
 
   const redirectByUserRole = (userObj) => {
@@ -88,9 +88,7 @@ export default function Register() {
 
   // Initialize official Google Identity Services
   useEffect(() => {
-    const activeClientId =
-      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-      "89870125852-ljoj152666esp5je2dhkavk2gjd19aff.apps.googleusercontent.com";
+    const activeClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!activeClientId) return;
 
     const setupGIS = () => {
@@ -135,9 +133,7 @@ export default function Register() {
   }, []);
 
   const handleGoogleBtnClick = () => {
-    const activeClientId =
-      import.meta.env.VITE_GOOGLE_CLIENT_ID ||
-      "89870125852-ljoj152666esp5je2dhkavk2gjd19aff.apps.googleusercontent.com";
+    const activeClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!activeClientId) {
       toast.error("Google Client ID is not configured in .env");
       return;

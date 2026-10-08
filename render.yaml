@@ -22,7 +22,7 @@ services:
       - key: CLIENT_ORIGINS
         sync: false # e.g. https://scrapsaathi-frontend.onrender.com,https://your-app.vercel.app
       - key: GOOGLE_CLIENT_ID
-        value: 89870125852-ljoj152666esp5je2dhkavk2gjd19aff.apps.googleusercontent.com
+        sync: false # Set in Render Dashboard Environment
 
   # ─── Frontend React/Vite Static Web Service ───────────────────────────────────
   - type: web
@@ -39,5 +39,5 @@ services:
       - key: VITE_API_BASE_URL
         value: https://scrapsaathi-backend.onrender.com/api
       - key: VITE_GOOGLE_CLIENT_ID
-        value: 89870125852-ljoj152666esp5je2dhkavk2gjd19aff.apps.googleusercontent.com
+        sync: false # Set in Render Dashboard Environment
 
