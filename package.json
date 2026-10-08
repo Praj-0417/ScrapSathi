@@ -19,7 +19,7 @@
     "dev": "concurrently --kill-others-on-fail -n \"GATEWAY,AUTH,PICKUP,RATE,DONATION,FRONT\" -c \"magenta,green,blue,yellow,cyan,red\" \"npm run dev:gateway\" \"npm run dev:auth\" \"npm run dev:pickup\" \"npm run dev:rate\" \"npm run dev:donation\" \"npm run dev:frontend\"",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
-    "test": "node --test --test-force-exit server/tests/integration.test.js",
+    "test": "node --test --test-force-exit tests/integration.test.js",
     "prettier": "prettier --write ."
   },
   "dependencies": {

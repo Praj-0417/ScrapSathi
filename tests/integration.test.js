@@ -14,7 +14,7 @@ describe('ScrapSaathi Backend Integration & Caveat Verifications', () => {
   // ─── 1. Auth Contract & OTP Verification Token Gate (Caveat #1 & #2) ────────
   describe('Caveat #1 & #2: Signup Contract & OTP Challenge Enforcement', () => {
     test('Registration without verificationToken must be rejected with OTP_NOT_VERIFIED', async () => {
-      const authService = require('../services/auth/authService');
+      const authService = require('../services/auth-service/services/auth/authService');
       const payload = {
         name: 'Test User',
         email: 'test_unverified@example.com',
@@ -38,7 +38,7 @@ describe('ScrapSaathi Backend Integration & Caveat Verifications', () => {
     });
 
     test('Registration with mismatched email in verificationToken must be rejected', async () => {
-      const authService = require('../services/auth/authService');
+      const authService = require('../services/auth-service/services/auth/authService');
       const forgedToken = jwt.sign(
         { email: 'different@example.com', purpose: 'registration' },
         JWT_SECRET,
@@ -90,7 +90,7 @@ describe('ScrapSaathi Backend Integration & Caveat Verifications', () => {
   // ─── 3. Magic Bytes File Signature Verification (Caveat #17) ─────────────────
   describe('Caveat #17: Binary Magic Bytes Image Validation', () => {
     test('Validates true JPEG, PNG, and WebP signatures', () => {
-      const { isValidImageSignature } = require('../middlewares/uploadMiddleware');
+      const { isValidImageSignature } = require('../services/pickup-service/middlewares/uploadMiddleware');
 
       const validJpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46]);
       const validPng = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -147,7 +147,7 @@ describe('ScrapSaathi Backend Integration & Caveat Verifications', () => {
   // ─── 5. Rate Service Layering & Quote Calculation (Caveat #6 & #15) ──────────
   describe('Caveat #6 & #15: Rates Architecture & Quote Calculation', () => {
     test('RateService generates structured rate cards with city prices', async () => {
-      const rateService = require('../services/rates/rateService');
+      const rateService = require('../services/rate-service/services/rates/rateService');
       const data = await rateService.getRatesByCity('delhi-ncr');
 
       assert.equal(data.city, 'delhi-ncr');
@@ -192,8 +192,8 @@ describe('ScrapSaathi Backend Integration & Caveat Verifications', () => {
   // ─── 6. Donation Provisional Acknowledgements (Caveat #11 & #12) ─────────────
   describe('Caveat #11 & #12: Donation State Machine & Acknowledgements', () => {
     test('Donation creation yields provisional acknowledgement and pending status', async () => {
-      const donationService = require('../services/donation/donationService');
-      const mockRepo = require('../repositories/donation/donationRepository');
+      const donationService = require('../services/donation-service/services/donation/donationService');
+      const mockRepo = require('../services/donation-service/repositories/donation/donationRepository');
 
       // Mock create in repository for unit integration
       const originalCreate = mockRepo.create;
