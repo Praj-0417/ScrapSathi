@@ -42,6 +42,12 @@ const ERROR_CODES = Object.freeze({
   // Tracking
   TRACKING_NOT_ALLOWED: Object.freeze({ statusCode: HTTP_STATUS.FORBIDDEN, message: 'You are not authorized to access tracking for this pickup.' }),
   TRACKING_NOT_FOUND: Object.freeze({ statusCode: HTTP_STATUS.NOT_FOUND, message: 'No live tracking data found for this pickup.' }),
+
+  // Serviceability
+  LOCATION_NOT_SERVICEABLE: Object.freeze({
+    statusCode: HTTP_STATUS.BAD_REQUEST,
+    message: 'Selected location is outside our operational service area. ScrapSaathi currently operates in Delhi NCR, Mumbai, Bengaluru, Pune, Hyderabad, Jaipur, Lucknow, Kolkata, and Chennai.',
+  }),
 });
 
 module.exports = ERROR_CODES;

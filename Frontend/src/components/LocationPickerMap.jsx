@@ -60,11 +60,62 @@ const QUICK_CITIES = [
   { name: 'Delhi NCR', lat: 28.6139, lng: 77.2090 },
   { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
   { name: 'Bengaluru', lat: 12.9716, lng: 77.5946 },
-  { name: 'Jaipur', lat: 26.9124, lng: 75.7873 },
-  { name: 'Lucknow', lat: 26.8467, lng: 80.9462 },
   { name: 'Pune', lat: 18.5204, lng: 73.8567 },
   { name: 'Hyderabad', lat: 17.3850, lng: 78.4867 },
+  { name: 'Jaipur', lat: 26.9124, lng: 75.7873 },
+  { name: 'Lucknow', lat: 26.8467, lng: 80.9462 },
+  { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+  { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
 ];
+
+export const SERVICE_HUBS = [
+  { id: 'delhi-ncr', name: 'Delhi NCR', lat: 28.6139, lon: 77.2090, maxRadiusKm: 50 },
+  { id: 'mumbai', name: 'Mumbai MMR', lat: 19.0760, lon: 72.8777, maxRadiusKm: 45 },
+  { id: 'bengaluru', name: 'Bengaluru', lat: 12.9716, lon: 77.5946, maxRadiusKm: 40 },
+  { id: 'pune', name: 'Pune', lat: 18.5204, lon: 73.8567, maxRadiusKm: 35 },
+  { id: 'hyderabad', name: 'Hyderabad', lat: 17.3850, lon: 78.4867, maxRadiusKm: 40 },
+  { id: 'jaipur', name: 'Jaipur', lat: 26.9124, lon: 75.7873, maxRadiusKm: 30 },
+  { id: 'lucknow', name: 'Lucknow', lat: 26.8467, lon: 80.9462, maxRadiusKm: 30 },
+  { id: 'kolkata', name: 'Kolkata', lat: 22.5726, lon: 88.3639, maxRadiusKm: 35 },
+  { id: 'chennai', name: 'Chennai', lat: 13.0827, lon: 80.2707, maxRadiusKm: 35 },
+];
+
+export function checkClientServiceability(lat, lon) {
+  if (lat == null || lon == null || isNaN(lat) || isNaN(lon)) return { serviceable: false, nearestHub: null };
+  const toRad = (x) => (x * Math.PI) / 180;
+  let minDistance = Infinity;
+  let closestHub = null;
+
+  for (const hub of SERVICE_HUBS) {
+    const dLat = toRad(hub.lat - lat);
+    const dLon = toRad(hub.lon - lon);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat)) * Math.cos(toRad(hub.lat)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const distanceKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    if (distanceKm < minDistance) {
+      minDistance = distanceKm;
+      closestHub = hub;
+    }
+
+    if (distanceKm <= hub.maxRadiusKm) {
+      return {
+        serviceable: true,
+        hub: hub.name,
+        hubId: hub.id,
+        distanceKm: parseFloat(distanceKm.toFixed(1)),
+      };
+    }
+  }
+
+  return {
+    serviceable: false,
+    nearestHub: closestHub ? closestHub.name : null,
+    distanceKm: parseFloat(minDistance.toFixed(1)),
+  };
+}
 
 // Component to handle map clicks & dragging
 function LocationMarker({ position, setPosition, onAddressFound }) {
@@ -166,16 +217,37 @@ export default function LocationPickerMap({
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
+  const [serviceInfo, setServiceInfo] = useState(() =>
+    checkClientServiceability(initialLocation[0], initialLocation[1])
+  );
   const searchTimeoutRef = useRef(null);
   const wrapperRef = useRef(null);
+
+  const notifyLocationFound = (details, customMessage = null) => {
+    const serviceCheck = checkClientServiceability(details.lat, details.lng);
+    setServiceInfo(serviceCheck);
+    setAddressDetails(details);
+    if (customMessage) {
+      setStatusMessage(customMessage);
+    } else {
+      setStatusMessage(serviceCheck.serviceable ? 'Location verified!' : 'Outside service area');
+    }
+    setTimeout(() => setStatusMessage(null), 3000);
+    if (onLocationSelect) {
+      onLocationSelect({
+        ...details,
+        serviceable: serviceCheck.serviceable,
+        hub: serviceCheck.hub,
+        hubId: serviceCheck.hubId,
+        serviceInfo: serviceCheck,
+      });
+    }
+  };
 
   // Initial geocode
   useEffect(() => {
     reverseGeocode(initialLocation[0], initialLocation[1], (details) => {
-      setAddressDetails(details);
-      if (onLocationSelect) {
-        onLocationSelect(details);
-      }
+      notifyLocationFound(details);
     });
   }, []);
 
@@ -191,12 +263,7 @@ export default function LocationPickerMap({
   }, []);
 
   const handleAddressFound = (details) => {
-    setAddressDetails(details);
-    setStatusMessage('Location updated from map pin!');
-    setTimeout(() => setStatusMessage(null), 3000);
-    if (onLocationSelect) {
-      onLocationSelect(details);
-    }
+    notifyLocationFound(details, 'Location updated from map pin!');
   };
 
   // Debounced autocomplete search on input
@@ -248,12 +315,7 @@ export default function LocationPickerMap({
       lat,
       lng,
     };
-    setAddressDetails(details);
-    setStatusMessage(`Jumped to ${item.city || 'selected area'}!`);
-    setTimeout(() => setStatusMessage(null), 3000);
-    if (onLocationSelect) {
-      onLocationSelect(details);
-    }
+    notifyLocationFound(details, `Jumped to ${item.city || 'selected area'}!`);
   };
 
   // Direct search submit
@@ -291,12 +353,7 @@ export default function LocationPickerMap({
     setPosition(newPos);
     setSearchQuery(`${city.name}, India`);
     reverseGeocode(city.lat, city.lng, (details) => {
-      setAddressDetails(details);
-      setStatusMessage(`Centered on ${city.name}!`);
-      setTimeout(() => setStatusMessage(null), 3000);
-      if (onLocationSelect) {
-        onLocationSelect(details);
-      }
+      notifyLocationFound(details, `Centered on ${city.name}!`);
     });
   };
 
@@ -462,18 +519,24 @@ export default function LocationPickerMap({
           <MapCenterController center={position} />
         </MapContainer>
 
-        {/* Floating Coordinates Badge */}
-        <div className="absolute bottom-3 left-3 z-[400] bg-slate-950/85 backdrop-blur-md text-white text-[11px] font-mono px-3 py-1.5 rounded-xl border border-emerald-500/30 shadow-lg flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>Lat: {position[0].toFixed(5)}</span>
+        {/* Floating Coordinates & Service Status Badge */}
+        <div className="absolute bottom-3 left-3 z-[400] bg-slate-950/90 backdrop-blur-md text-white text-[11px] font-mono px-3 py-1.5 rounded-xl border border-slate-700/80 shadow-lg flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${serviceInfo.serviceable ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500 animate-ping'}`}></span>
+          <span className={serviceInfo.serviceable ? 'text-emerald-300 font-bold' : 'text-rose-400 font-bold'}>
+            {serviceInfo.serviceable ? `${serviceInfo.hub} Hub` : 'Outside Service Zone'}
+          </span>
           <span className="text-slate-600">|</span>
-          <span>Lng: {position[1].toFixed(5)}</span>
+          <span>{position[0].toFixed(4)}, {position[1].toFixed(4)}</span>
         </div>
       </div>
 
       {/* Address Confirmation Footer */}
       <div className="p-4 bg-slate-950/90 border-t border-slate-800 flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
+        <div className={`w-9 h-9 rounded-xl border flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5 ${
+          serviceInfo.serviceable
+            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+            : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+        }`}>
           <MapPin className="w-4.5 h-4.5" />
         </div>
         <div className="flex-1 min-w-0">
@@ -482,8 +545,16 @@ export default function LocationPickerMap({
               Doorstep Pickup Address
             </span>
             {statusMessage && (
-              <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1 animate-fade-in bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <span className={`text-[11px] font-bold flex items-center gap-1 animate-fade-in px-2 py-0.5 rounded-full border ${
+                serviceInfo.serviceable
+                  ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                  : 'text-rose-300 bg-rose-500/10 border-rose-500/20'
+              }`}>
+                {serviceInfo.serviceable ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                )}
                 {statusMessage}
               </span>
             )}
@@ -491,6 +562,26 @@ export default function LocationPickerMap({
           <p className="text-xs text-slate-300 font-medium line-clamp-2 mt-1">
             {addressDetails.formattedAddress}
           </p>
+
+          {/* Serviceability Status Badge */}
+          <div className="mt-2.5">
+            {serviceInfo.serviceable ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-[11px] font-bold text-emerald-300 shadow-sm">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>Serviceable: Covered by {serviceInfo.hub} Hub (~{serviceInfo.distanceKm} km away)</span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 p-2.5 rounded-xl bg-rose-950/90 border border-rose-500/50 text-[11px] font-bold text-rose-300 shadow-md">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-rose-200">Location Outside Operational Service Hub</p>
+                  <p className="font-normal text-rose-300/80 mt-0.5">
+                    ScrapSaathi currently only operates in Delhi NCR, Mumbai, Bengaluru, Pune, Hyderabad, Jaipur, Lucknow, Kolkata, and Chennai. Pickups cannot be scheduled in this area yet.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

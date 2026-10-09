@@ -6,6 +6,7 @@ const emailAdapter = require('../../infrastructure/email/emailAdapter');
 const { ApiError } = require('../../utils/ApiError');
 const { ERROR_CODES, APP_CONSTANTS } = require('../../constants');
 const { PICKUP_REQUEST_STATUS, WASTE_UNITS, LOCATION_TYPES } = require('../../enums');
+const { checkServiceability } = require('../../utils/serviceability');
 const logger = require('../../utils/logger');
 
 class PickupService {
@@ -28,6 +29,25 @@ class PickupService {
       customerNotes,
       city = 'delhi-ncr',
     } = data;
+
+    // ── Serviceability Enforcement ──────────────────────────────────────────
+    let resolvedCity = city;
+    if (latitude !== undefined && longitude !== undefined) {
+      const lat = Number(latitude);
+      const lon = Number(longitude);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        const check = checkServiceability(lat, lon);
+        if (!check.serviceable) {
+          throw new ApiError(
+            ERROR_CODES.LOCATION_NOT_SERVICEABLE,
+            `We currently do not service this location (${address || 'selected area'}). Active service hubs: Delhi NCR, Mumbai, Bengaluru, Pune, Hyderabad, Jaipur, Lucknow, Kolkata, and Chennai.`,
+          );
+        }
+        if (check.hubId) {
+          resolvedCity = check.hubId;
+        }
+      }
+    }
 
     // Normalize wasteDetails — support both array and flat fields
     let normalizedWasteDetails = wasteDetails;
@@ -56,8 +76,8 @@ class PickupService {
         if (item.active !== false) {
           const key = (item.name || item.itemId || '').toLowerCase();
           rateMap[key] = item.prices instanceof Map
-            ? (item.prices.get(city) ?? item.prices.get('delhi-ncr') ?? 0)
-            : (item.prices?.[city] ?? item.prices?.['delhi-ncr'] ?? 0);
+            ? (item.prices.get(resolvedCity) ?? item.prices.get('delhi-ncr') ?? 0)
+            : (item.prices?.[resolvedCity] ?? item.prices?.['delhi-ncr'] ?? 0);
         }
       }
     }
@@ -96,7 +116,7 @@ class PickupService {
     const pickupPayload = {
       userId,
       wasteDetails: normalizedWasteDetails,
-      quote: { items: quoteItems, city, currency: 'INR', totalEstimate, rateSnapshotDate },
+      quote: { items: quoteItems, city: resolvedCity, currency: 'INR', totalEstimate, rateSnapshotDate },
       address,
       preferredTimeSlot,
       ...(customerNotes ? { customerNotes } : {}),

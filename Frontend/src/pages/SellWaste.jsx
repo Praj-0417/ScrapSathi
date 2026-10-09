@@ -79,6 +79,12 @@ export default function SellWaste() {
     address: "",
   });
 
+  const [isServiceable, setIsServiceable] = useState(true);
+  const [serviceLocationInfo, setServiceLocationInfo] = useState({
+    serviceable: true,
+    hub: "Delhi NCR",
+  });
+
   const [showMap, setShowMap] = useState(true);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -362,6 +368,10 @@ export default function SellWaste() {
       lng: loc.lng,
       address: resolvedAddress,
     });
+    if (typeof loc.serviceable === "boolean") {
+      setIsServiceable(loc.serviceable);
+      setServiceLocationInfo(loc);
+    }
     if (resolvedAddress) {
       setFormData((prev) => ({
         ...prev,
@@ -387,6 +397,12 @@ export default function SellWaste() {
     e.preventDefault();
     if (!formData.address.trim()) {
       toast.error("Please pin your location on the map or type your full address");
+      return;
+    }
+    if (!isServiceable) {
+      toast.error(
+        "The selected address is outside our operational service hubs. ScrapSaathi currently operates in Delhi NCR, Mumbai, Bengaluru, Pune, Hyderabad, Jaipur, Lucknow, Kolkata, and Chennai."
+      );
       return;
     }
     if (selectedItemsArray.length === 0) {
@@ -1039,15 +1055,36 @@ export default function SellWaste() {
                 </div>
               </div>
 
+              {/* Serviceability Warning Card if location is outside service hubs */}
+              {!isServiceable && (
+                <div className="p-4 rounded-2xl bg-rose-950/80 border border-rose-500/50 flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center shrink-0">
+                    ⚠️
+                  </div>
+                  <div className="text-xs text-rose-200">
+                    <p className="font-bold text-rose-300">Location Outside Active Service Area</p>
+                    <p className="mt-0.5 text-rose-300/80 leading-relaxed">
+                      ScrapSaathi currently only operates in <strong>Delhi NCR, Mumbai, Bengaluru, Pune, Hyderabad, Jaipur, Lucknow, Kolkata, and Chennai</strong>. Pickups cannot be scheduled in this area yet. Please select an address within one of our active cities.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading || selectedItemsArray.length === 0}
-                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 text-white font-black text-base rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                disabled={loading || selectedItemsArray.length === 0 || !isServiceable}
+                className={`w-full py-4 font-black text-base rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98 ${
+                  !isServiceable
+                    ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed opacity-60"
+                    : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 text-white shadow-emerald-500/20"
+                }`}
               >
                 <span>
                   {loading
                     ? "Confirming Coordinates & Booking..."
+                    : !isServiceable
+                    ? "Location Outside Service Coverage — Select an Active City"
                     : `Confirm & Schedule Pickup (${selectedItemsArray.length} items • ₹${totalEstimatedPayout}${hasCustomUnpricedItems ? " + Evaluation at Home" : ""})`}
                 </span>
                 <ArrowRightIcon className="w-5 h-5" />
